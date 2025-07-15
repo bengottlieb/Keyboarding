@@ -10,11 +10,14 @@ import Keyboarding
 
 struct ContentView: View {
 	@State private var isFocused = false
-    var body: some View {
+	@State private var useSystemKeyboard = false
+
+	var body: some View {
 		 VStack {
+			 Toggle("Sysem Keyboard", isOn: $useSystemKeyboard)
 			 Button("Toggle Focus") { isFocused.toggle() }
 		 }
-		 .addKeyboard(isFocused: isFocused, Keyboard()) { key in
+		 .addKeyboard(isFocused: isFocused, useSystemKeyboard: useSystemKeyboard, Keyboard()) { key in
 			 
 			 print("Key: \(key)")
 			 return .ignored
@@ -30,6 +33,7 @@ struct Keyboard: View {
 		HStack {
 			Button("A") { _ = sendKey("A") }
 			Button("B") { _ = sendKey("B") }
+			Button(action: { _ = sendKey(.backspace) }) { Image(systemName: "delete.left") }
 		}
 	}
 }

@@ -9,16 +9,6 @@ import SwiftUI
 
 public typealias HandleKeyPress = (PressedKey) -> KeyPress.Result
 
-public struct PressedKey {
-	let keyPress: KeyPress?
-	let string: String?
-}
-
-public protocol KeySendable { }
-
-extension KeyPress: KeySendable { }
-extension String: KeySendable { }
-
 public struct KeySender: Equatable, @unchecked Sendable {
 	let line: Int
 	let file: String
@@ -27,6 +17,14 @@ public struct KeySender: Equatable, @unchecked Sendable {
 		send(key)
 	}
 	
+	public func callAsFunction(_ key: SpecialPressedKeys) -> KeyPress.Result {
+		send(key)
+	}
+
+	public func callAsFunction(_ key: String) -> KeyPress.Result {
+		send(key)
+	}
+
 	public static func ==(lhs: Self, rhs: Self) -> Bool {
 		lhs.line == rhs.line && lhs.file == rhs.file
 	}
@@ -42,8 +40,8 @@ public struct KeySender: Equatable, @unchecked Sendable {
 		self.file = file
 		self.send = { keyPress in
 			if let key = keyPress as? KeyPress { return action(.init(keyPress: key, string: key.characters)) }
-			if let string = keyPress as? String { return action(.init(keyPress: nil, string: string)) }
-
+			if let string = keyPress as? String { return action(.init(string: string)) }
+			if let special = keyPress as? SpecialPressedKeys { return action(special.pressedKey)}
 			return .ignored
 		}
 	}

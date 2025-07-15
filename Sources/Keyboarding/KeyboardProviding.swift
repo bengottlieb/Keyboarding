@@ -8,15 +8,17 @@
 import SwiftUI
 
 struct KeyboardProviding<Content: View, KeyboardView: View>: UIViewRepresentable {
-	var content: () -> Content
-	var keyboard: () -> KeyboardView
+	@ViewBuilder var content: () -> Content
+	@ViewBuilder var keyboard: () -> KeyboardView
 	var isFocused: Bool
+	var useSystemKeyboard = false
 	@Environment(\.sendKey) var sendKey
 	
-	init(isFocused: Bool, @ViewBuilder keyboard: @escaping @MainActor () -> KeyboardView, @ViewBuilder content: @escaping @MainActor () -> Content) {
+	init(isFocused: Bool, useSystemKeyboard: Bool, @ViewBuilder keyboard: @escaping @MainActor () -> KeyboardView, @ViewBuilder content: @escaping @MainActor () -> Content) {
 		self.content = content
 		self.keyboard = keyboard
 		self.isFocused = isFocused
+		self.useSystemKeyboard = useSystemKeyboard
 	}
 
 	func makeUIView(context: Context) -> Container {
@@ -30,6 +32,7 @@ struct KeyboardProviding<Content: View, KeyboardView: View>: UIViewRepresentable
 			context.coordinator.container.resignFirstResponder()
 		}
 		context.coordinator.sendKey = sendKey
+		context.coordinator.useSystemKeyboard = useSystemKeyboard
 	}
 	
 	func makeCoordinator() -> Coordinator {
@@ -40,20 +43,20 @@ struct KeyboardProviding<Content: View, KeyboardView: View>: UIViewRepresentable
 extension KeyboardProviding {
 	class Container: UIView, UIKeyInput {
 		var hasText: Bool { true }
+		func insertText(_ text: String) { sendKey?(text) }
+		func deleteBackward() { sendKey?(.backspace) }
 		
-		func insertText(_ text: String) {
-			
-		}
-		
-		func deleteBackward() {
-			
-		}
-		
+		override var canBecomeFirstResponder: Bool { true }
+
 		let host: UIViewController
 		let keyboard: UIViewController
-		override var canBecomeFirstResponder: Bool { true }
+		var sendKey: KeySender?
 		
-		override var inputView: UIView? { keyboard.view }
+		var useSystemKeyboard = false { didSet { if useSystemKeyboard != oldValue, isFirstResponder {
+			resignFirstResponder()
+			becomeFirstResponder()
+		}}}
+		override var inputView: UIView? { useSystemKeyboard ? nil : keyboard.view }
 		
 		init(host: UIViewController, keyboard: UIViewController) {
 			self.host = host
@@ -61,8 +64,8 @@ extension KeyboardProviding {
 			super.init(frame: .zero)
 			
 			addSubview(host.view)
+
 			host.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-			
 			keyboard.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 		}
 
@@ -73,11 +76,12 @@ extension KeyboardProviding {
 		let controller: UIViewController
 		var keyboardController: UIViewController!
 		var container: Container!
-		var sendKey: KeySender?
-
+		var sendKey: KeySender? { didSet { container.sendKey = sendKey }}
+		var useSystemKeyboard = false { didSet { container.useSystemKeyboard = useSystemKeyboard }}
+		
 		init(keyboard: () -> KeyboardView, content: () -> Content) {
 			controller = UIHostingController(rootView: content())
-			keyboardController = UIHostingController(rootView: keyboard().environment(\.sendKey, .init({ [weak self] key in
+			keyboardController = useSystemKeyboard ? nil : UIHostingController(rootView: keyboard().environment(\.sendKey, .init({ [weak self] key in
 				self?.sendKey?(key) ?? .ignored
 			})))
 			container = .init(host: controller, keyboard: keyboardController)
