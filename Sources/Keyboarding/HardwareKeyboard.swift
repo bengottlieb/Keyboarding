@@ -20,12 +20,12 @@ import GameKit
 	
 	private init() {
 		NotificationCenter.default.addObserver(forName: Notification.Name.GCKeyboardDidConnect, object: nil, queue: .main) { _ in
-			print("Hardware keyboard connected")
+			print("⌨ Hardware keyboard connected")
 			Task { @MainActor in  withAnimation { self.keyboardIsConnected = true } }
 		}
 
 		NotificationCenter.default.addObserver(forName: Notification.Name.GCKeyboardDidDisconnect, object: nil, queue: .main) { _ in
-			print("Hardware keyboard disconnected")
+			print("⌨ Hardware keyboard disconnected")
 			Task { @MainActor in  withAnimation { self.keyboardIsConnected = false } }
 		}
 	}

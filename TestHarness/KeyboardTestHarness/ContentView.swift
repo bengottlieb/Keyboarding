@@ -13,7 +13,6 @@ struct ContentView: View {
 	@State private var useSystemKeyboard: UseSystemKeyboard = .never
 
 	var body: some View {
-		let _ = print("System Keyboard: \(useSystemKeyboard), focused: \(isFocused)")
 		 VStack {
 			 Picker("System Keyboard", selection: $useSystemKeyboard) {
 				 Text("Always").tag(UseSystemKeyboard.always)
@@ -24,14 +23,10 @@ struct ContentView: View {
 			 Button("Toggle Focus") { isFocused.toggle() }
 		 }
 		 .addKeyboard(isFocused: isFocused, useSystemKeyboard: useSystemKeyboard, Keyboard()) { key in
-			 
 			 print("Key: \(key)")
 			 return .ignored
 		 }
         .padding()
-		  .onChange(of: useSystemKeyboard) { old, new in
-				print("\(old) -> \(new)")
-		  }
     }
 }
 

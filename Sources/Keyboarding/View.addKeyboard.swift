@@ -5,7 +5,7 @@ public extension View {
 		KeyboardProviding(isFocused: isFocused, useSystemKeyboard: useSystemKeyboard, keyboard: { keyboard }, content: { self })
 			.environment(\.sendKey, .init(handleKeyPress))
 			.onKeyPress { press in
-				print(press)
+				handleKeyPress(.init(keyPress: press))
 				return .handled
 			}
 	}
