@@ -21,6 +21,9 @@ public struct PressedKey: CustomStringConvertible {
 		
 		if let key { self.key = key }
 		else if let keyPress { self.key = keyPress.key }
+		else if string == " " { self.key = .space }
+		else if string == "\n" { self.key = .return }
+		else if string == "\t" { self.key = .tab }
 		else { self.key = nil }
 		
 		modifiers = keyPress?.modifiers ?? .init(rawValue: 0)
