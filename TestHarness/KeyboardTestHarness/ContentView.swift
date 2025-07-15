@@ -10,11 +10,17 @@ import Keyboarding
 
 struct ContentView: View {
 	@State private var isFocused = false
-	@State private var useSystemKeyboard = false
+	@State private var useSystemKeyboard: UseSystemKeyboard = .never
 
 	var body: some View {
+		let _ = print("System Keyboard: \(useSystemKeyboard), focused: \(isFocused)")
 		 VStack {
-			 Toggle("Sysem Keyboard", isOn: $useSystemKeyboard)
+			 Picker("System Keyboard", selection: $useSystemKeyboard) {
+				 Text("Always").tag(UseSystemKeyboard.always)
+				 Text("If Hardware").tag(UseSystemKeyboard.ifHardware)
+				 Text("Never").tag(UseSystemKeyboard.never)
+			 }
+			 .pickerStyle(.segmented)
 			 Button("Toggle Focus") { isFocused.toggle() }
 		 }
 		 .addKeyboard(isFocused: isFocused, useSystemKeyboard: useSystemKeyboard, Keyboard()) { key in
@@ -23,6 +29,9 @@ struct ContentView: View {
 			 return .ignored
 		 }
         .padding()
+		  .onChange(of: useSystemKeyboard) { old, new in
+				print("\(old) -> \(new)")
+		  }
     }
 }
 

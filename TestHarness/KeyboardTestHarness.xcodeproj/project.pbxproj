@@ -11,6 +11,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		B5C3DE7E2E2668FD00D2F3E4 /* suite */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = suite; path = "/Users/ben/Library/Developer/Xcode/DerivedData/KeyboardTestHarness-clwkndcswyqlvmgkvakrdrywlkrw/SourcePackages/checkouts/suite"; sourceTree = "<absolute>"; };
 		B5C72B0C2E2607DD00353751 /* KeyboardTestHarness.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KeyboardTestHarness.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -34,10 +35,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		B5C3DE7D2E2668FD00D2F3E4 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				B5C3DE7E2E2668FD00D2F3E4 /* suite */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		B5C72B032E2607DD00353751 = {
 			isa = PBXGroup;
 			children = (
 				B5C72B0E2E2607DD00353751 /* KeyboardTestHarness */,
+				B5C3DE7D2E2668FD00D2F3E4 /* Frameworks */,
 				B5C72B0D2E2607DD00353751 /* Products */,
 			);
 			sourceTree = "<group>";
