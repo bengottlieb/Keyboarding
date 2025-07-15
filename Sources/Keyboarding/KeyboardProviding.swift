@@ -11,6 +11,7 @@ struct KeyboardProviding<Content: View, KeyboardView: View>: UIViewRepresentable
 	var content: () -> Content
 	var keyboard: () -> KeyboardView
 	var isFocused: Bool
+	@Environment(\.sendKey) var sendKey
 	
 	init(isFocused: Bool, @ViewBuilder keyboard: @escaping @MainActor () -> KeyboardView, @ViewBuilder content: @escaping @MainActor () -> Content) {
 		self.content = content
@@ -28,6 +29,7 @@ struct KeyboardProviding<Content: View, KeyboardView: View>: UIViewRepresentable
 		} else {
 			context.coordinator.container.resignFirstResponder()
 		}
+		context.coordinator.sendKey = sendKey
 	}
 	
 	func makeCoordinator() -> Coordinator {
@@ -47,13 +49,13 @@ extension KeyboardProviding {
 			
 		}
 		
-		let host: HostController
-		let keyboard: KeyboardController
+		let host: UIViewController
+		let keyboard: UIViewController
 		override var canBecomeFirstResponder: Bool { true }
 		
 		override var inputView: UIView? { keyboard.view }
 		
-		init(host: HostController, keyboard: KeyboardController) {
+		init(host: UIViewController, keyboard: UIViewController) {
 			self.host = host
 			self.keyboard = keyboard
 			super.init(frame: .zero)
@@ -63,31 +65,22 @@ extension KeyboardProviding {
 			
 			keyboard.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 		}
-		
-//		override func becomeFirstResponder() -> Bool {
-//			true
-//		}
-		
+
 		required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 	}
 	
 	@MainActor class Coordinator {
-		let controller: HostController
-		let keyboardController: KeyboardController
+		let controller: UIViewController
+		var keyboardController: UIViewController!
 		var container: Container!
+		var sendKey: KeySender?
 
 		init(keyboard: () -> KeyboardView, content: () -> Content) {
-			controller = .init(rootView: content())
-			keyboardController = .init(rootView: keyboard())
+			controller = UIHostingController(rootView: content())
+			keyboardController = UIHostingController(rootView: keyboard().environment(\.sendKey, .init({ [weak self] key in
+				self?.sendKey?(key) ?? .ignored
+			})))
 			container = .init(host: controller, keyboard: keyboardController)
 		}
-	}
-	
-	class HostController: UIHostingController<Content> {
-		
-	}
-	
-	class KeyboardController: UIHostingController<KeyboardView> {
-		
 	}
 }
