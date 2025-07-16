@@ -42,6 +42,7 @@ public struct KeySender: Equatable, @unchecked Sendable {
 			if let key = keyPress as? KeyPress { return action(.init(keyPress: key, string: key.characters)) }
 			if let string = keyPress as? String { return action(.init(string: string)) }
 			if let special = keyPress as? SpecialPressedKeys { return action(special.pressedKey)}
+			if let raw = keyPress as? PressedKey { return action(raw)}
 			return .ignored
 		}
 	}

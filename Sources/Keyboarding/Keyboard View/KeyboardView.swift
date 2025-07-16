@@ -73,26 +73,6 @@ public struct KeyboardView: View {
 		}
 		.frame(width: 400, height: 186)
 	}
-	
-	struct KeyCap: View {
-		@State private var hapticTrigger = false
-	//	@Environment(\.keyboardOptions) var keyboardOptions
-		let keyCap: KeyCommand
-		
-		var body: some View {
-			Button(action: {
-				hapticTrigger.toggle()
-				//keyboardTarget?.handle(key: keyCap.forTarget(keyboardTarget), options: keyboardOptions, focus: nil)
-			}) {
-				if let text = keyCap.keycapLabel {
-					Text(text)
-				} else if let image = keyCap.keycapImage {
-					image
-				}
-			}
-			.sensoryFeedback(.selection, trigger: hapticTrigger)
-		}
-	}
 }
 
 

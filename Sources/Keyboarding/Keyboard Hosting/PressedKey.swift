@@ -9,7 +9,7 @@ import SwiftUI
 
 public protocol KeySendable { }
 
-public struct PressedKey: CustomStringConvertible {
+public struct PressedKey: CustomStringConvertible, Sendable, KeySendable {
 	public let keyPress: KeyPress?
 	public let string: String?
 	public let key: KeyEquivalent?
