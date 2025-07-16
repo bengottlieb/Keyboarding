@@ -54,7 +54,7 @@ public struct KeyboardView: View {
 										let keyWidth = keyCapWidth + currentPadding
 										let keyHeight = keyCapHeight// + currentPadding
 										KeyCap(keyCap: action)
-//											.buttonStyle(.roundKeyboardKey(isNextKey: isNext, contentPadding: currentPadding / 2))
+											.buttonStyle(.roundKeyboardKey(isNextKey: isNext, contentPadding: currentPadding / 2))
 											.frame(width: keyWidth, height: keyHeight)
 											.font(.system(size: keyCapWidth * 0.5, weight: .bold, design: .rounded))
 											.zIndex(isNext ? 100 : 0)

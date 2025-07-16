@@ -9,7 +9,7 @@ import SwiftUI
 import Keyboarding
 
 struct ContentView: View {
-	@State private var isFocused = false
+	@State private var isFocused = true
 	@State private var useSystemKeyboard: UseSystemKeyboard = .never
 
 	var body: some View {
@@ -22,7 +22,7 @@ struct ContentView: View {
 			 .pickerStyle(.segmented)
 			 Button("Toggle Focus") { isFocused.toggle() }
 		 }
-		 .addKeyboard(isFocused: isFocused, useSystemKeyboard: useSystemKeyboard, Keyboard()) { key in
+		 .addKeyboard(isFocused: isFocused, useSystemKeyboard: useSystemKeyboard, .qwertyWithDismiss) { key in
 			 print("Key: \(key)")
 			 return .ignored
 		 }
