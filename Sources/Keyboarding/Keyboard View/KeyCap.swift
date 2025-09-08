@@ -16,7 +16,7 @@ struct KeyCap: View {
 	var body: some View {
 		Button(action: {
 			hapticTrigger.toggle()
-			sendKey(keyCap.pressedKey)
+			_ = sendKey(keyCap.pressedKey)
 			//keyboardTarget?.handle(key: keyCap.forTarget(keyboardTarget), options: keyboardOptions, focus: nil)
 		}) {
 			if let text = keyCap.keycapLabel {

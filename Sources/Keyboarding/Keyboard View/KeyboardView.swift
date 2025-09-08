@@ -50,7 +50,7 @@ public struct KeyboardView: View {
 									ForEach(row.indices, id: \.self) { x in
 										let action = row[x]
 										let isNext = false//assistant.nextKey != nil && action.keycapLabel == assistant.nextKey
-										let currentPadding = isNext ? 30.0 : 0
+										let currentPadding =  0.0//isNext ? 30.0 : 0
 										let keyWidth = keyCapWidth + currentPadding
 										let keyHeight = keyCapHeight// + currentPadding
 										KeyCap(keyCap: action)

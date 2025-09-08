@@ -11,8 +11,9 @@ import Combine
 extension KeyboardProviding {
 	class Container: UIView, UIKeyInput {
 		var hasText: Bool { true }
-		func insertText(_ text: String) { sendKey?(text) }
-		func deleteBackward() { sendKey?(.backspace) }
+		func insertText(_ text: String) { _ = sendKey?(text) }
+		func deleteBackward() { _ = sendKey?(.backspace) }
+		var coordinator: Coordinator?
 		
 		override var canBecomeFirstResponder: Bool { true }
 
@@ -25,6 +26,7 @@ extension KeyboardProviding {
 		var useSystemKeyboard: UseSystemKeyboard = .never {
 			didSet {
 				if !isFirstResponder { return }
+				if useSystemKeyboard == oldValue { return }
 				switch useSystemKeyboard {
 				case .never:
 					if !isHardwareKeyboardConnected, oldValue == .ifHardware { return }
@@ -36,10 +38,19 @@ extension KeyboardProviding {
 					if isHardwareKeyboardConnected, oldValue == .ifHardware { return }
 				}
 				
-				resignFirstResponder()
-				becomeFirstResponder()
+				_ = resignFirstResponder()
+				_ = becomeFirstResponder()
 			}}
 		
+		override func resignFirstResponder() -> Bool {
+			coordinator?.wasFocused = false
+			return super.resignFirstResponder()
+		}
+		
+		override func becomeFirstResponder() -> Bool {
+			coordinator?.wasFocused = true
+			return super.becomeFirstResponder()
+		}
 		override var inputView: UIView? {
 			switch useSystemKeyboard {
 			case .always: nil
@@ -64,9 +75,9 @@ extension KeyboardProviding {
 				guard let self else { return }
 				if useSystemKeyboard == .ifHardware, isFirstResponder {
 					Task {
-						resignFirstResponder()
-						try? await Task.sleep(for: .seconds(0.2))
-						becomeFirstResponder()
+//						resignFirstResponder()
+//						try? await Task.sleep(for: .seconds(0.2))
+//						becomeFirstResponder()
 					}
 				}
 			}

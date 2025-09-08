@@ -26,12 +26,8 @@ struct KeyboardProviding<Content: View, KeyboardView: View>: UIViewRepresentable
 	}
 	
 	func updateUIView(_ uiView: Container, context: Context) {
-		if isFocused {
-			context.coordinator.container.becomeFirstResponder()
-		} else {
-			context.coordinator.container.resignFirstResponder()
-		}
 		context.coordinator.content = content()
+		context.coordinator.setFocus(isFocused)
 		context.coordinator.sendKey = sendKey
 		context.coordinator.useSystemKeyboard = useSystemKeyboard
 	}
@@ -43,6 +39,7 @@ struct KeyboardProviding<Content: View, KeyboardView: View>: UIViewRepresentable
 
 extension KeyboardProviding {
 	@MainActor class Coordinator {
+		var wasFocused = false
 		var controller: UIViewController!
 		var keyboardController: UIViewController!
 		var container: Container!
@@ -61,8 +58,20 @@ extension KeyboardProviding {
 				self?.sendKey?(key) ?? .ignored
 			})))
 			container = .init(host: controller, keyboard: keyboardController)
+			container.coordinator = self
 		}
 		
+		func setFocus(_ isFocused: Bool) {
+			if isFocused != wasFocused {
+				print("Focused changed to \(isFocused)")
+				if isFocused {
+					_ = container.becomeFirstResponder()
+				} else {
+					_ = container.resignFirstResponder()
+				}
+			}
+
+		}
 	}
 }
 
