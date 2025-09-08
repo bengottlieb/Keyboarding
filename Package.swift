@@ -7,7 +7,7 @@ let package = Package(
     name: "Keyboarding",
 	 platforms: [
 				 .macOS(.v15),
-				 .iOS(.v18),
+				 .iOS(.v17),
 //				 .watchOS(.v7)
 		  ],
     products: [

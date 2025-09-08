@@ -31,29 +31,49 @@ struct KeyboardProviding<Content: View, KeyboardView: View>: UIViewRepresentable
 		} else {
 			context.coordinator.container.resignFirstResponder()
 		}
+		context.coordinator.content = content()
 		context.coordinator.sendKey = sendKey
 		context.coordinator.useSystemKeyboard = useSystemKeyboard
 	}
 	
 	func makeCoordinator() -> Coordinator {
-		Coordinator(keyboard: keyboard, content: content)
+		Coordinator(keyboard: keyboard, content: content())
 	}
 }
 
 extension KeyboardProviding {
 	@MainActor class Coordinator {
-		let controller: UIViewController
+		var controller: UIViewController!
 		var keyboardController: UIViewController!
 		var container: Container!
 		var sendKey: KeySender? { didSet { container.sendKey = sendKey }}
 		var useSystemKeyboard: UseSystemKeyboard = .never { didSet { container.useSystemKeyboard = useSystemKeyboard }}
+		var content: Content { didSet { contentBinding?.wrappedValue = content }}
 		
-		init(keyboard: () -> KeyboardView, content: () -> Content) {
-			controller = UIHostingController(rootView: content())
+		var contentBinding: Binding<Content>?
+		
+		init(keyboard: () -> KeyboardView, content: Content) {
+			self.content = content
+			controller = UIHostingController(rootView: UpdatingContainer(content: content, setup: { binding in
+				self.contentBinding = binding
+			}))
 			keyboardController = UIHostingController(rootView: keyboard().environment(\.sendKey, .init({ [weak self] key in
 				self?.sendKey?(key) ?? .ignored
 			})))
 			container = .init(host: controller, keyboard: keyboardController)
 		}
+		
+	}
+}
+
+struct UpdatingContainer<Content: View>: View {
+	@State var content: Content
+	var setup: (Binding<Content>) -> Void
+	
+	var body: some View {
+		VStack {
+			content
+		}
+		.onAppear { setup($content) }
 	}
 }
