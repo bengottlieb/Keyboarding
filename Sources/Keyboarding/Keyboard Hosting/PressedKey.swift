@@ -67,6 +67,11 @@ public struct PressedKey: CustomStringConvertible, Sendable, KeySendable {
 		if let string {
 			return "Key(\"\(string)\")"
 		}
+		
+		if let key = keyPress?.key {
+			return "Key(\"\(String(key.character))\")"
+		}
+		
 		return "Empty key"
 	}
 }
