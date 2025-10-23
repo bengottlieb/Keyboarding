@@ -15,6 +15,12 @@ public struct PressedKey: CustomStringConvertible, Sendable, KeySendable {
 	public let key: KeyEquivalent?
 	public let modifiers: EventModifiers
 	
+	public var keyString: String? {
+		if let string { return string }
+		if let chr = key?.character { return String(chr) }
+		return nil
+	}
+	
 	init(keyPress: KeyPress? = nil, string: String? = nil, key: KeyEquivalent? = nil) {
 		self.keyPress = keyPress
 		self.string = string
