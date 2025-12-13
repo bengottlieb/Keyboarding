@@ -43,14 +43,15 @@ extension KeyboardProviding {
 			}}
 		
 		override func resignFirstResponder() -> Bool {
-			coordinator?.wasFocused = false
+			coordinator?.keyboardVisibilityChanged(to: false)
 			return super.resignFirstResponder()
 		}
 		
 		override func becomeFirstResponder() -> Bool {
-			coordinator?.wasFocused = true
+			coordinator?.keyboardVisibilityChanged(to: true)
 			return super.becomeFirstResponder()
 		}
+		
 		override var inputView: UIView? {
 			switch useSystemKeyboard {
 			case .always: nil

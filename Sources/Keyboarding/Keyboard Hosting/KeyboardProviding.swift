@@ -10,14 +10,14 @@ import SwiftUI
 struct KeyboardProviding<Content: View, KeyboardView: View>: UIViewRepresentable {
 	@ViewBuilder var content: () -> Content
 	@ViewBuilder var keyboard: () -> KeyboardView
-	var isFocused: Bool
+	@Binding var isFocused: Bool
 	var useSystemKeyboard: UseSystemKeyboard
 	@Environment(\.sendKey) var sendKey
 	
-	init(isFocused: Bool, useSystemKeyboard: UseSystemKeyboard, @ViewBuilder keyboard: @escaping @MainActor () -> KeyboardView, @ViewBuilder content: @escaping @MainActor () -> Content) {
+	init(isFocused: Binding<Bool>, useSystemKeyboard: UseSystemKeyboard, @ViewBuilder keyboard: @escaping @MainActor () -> KeyboardView, @ViewBuilder content: @escaping @MainActor () -> Content) {
 		self.content = content
 		self.keyboard = keyboard
-		self.isFocused = isFocused
+		_isFocused = isFocused
 		self.useSystemKeyboard = useSystemKeyboard
 	}
 
@@ -26,10 +26,11 @@ struct KeyboardProviding<Content: View, KeyboardView: View>: UIViewRepresentable
 	}
 	
 	func updateUIView(_ uiView: Container, context: Context) {
+		context.coordinator.isFocused = _isFocused
 		context.coordinator.content = content()
-		context.coordinator.setFocus(isFocused)
 		context.coordinator.sendKey = sendKey
 		context.coordinator.useSystemKeyboard = useSystemKeyboard
+		context.coordinator.updateFocus()
 	}
 	
 	func makeCoordinator() -> Coordinator {
@@ -48,6 +49,7 @@ extension KeyboardProviding {
 		var content: Content { didSet { contentBinding?.wrappedValue = content }}
 		
 		var contentBinding: Binding<Content>?
+		var isFocused: Binding<Bool> = .constant(false)
 		
 		init(keyboard: () -> KeyboardView, content: Content) {
 			self.content = content
@@ -61,10 +63,19 @@ extension KeyboardProviding {
 			container.coordinator = self
 		}
 		
-		func setFocus(_ isFocused: Bool) {
-			if isFocused != wasFocused {
+		func keyboardVisibilityChanged(to visible: Bool) {
+			if visible == wasFocused { return }
+			
+			wasFocused = visible
+			Task {
+				isFocused.wrappedValue = visible
+			}
+		}
+		
+		fileprivate func updateFocus() {
+			if isFocused.wrappedValue != wasFocused {
 				print("Focused changed to \(isFocused)")
-				if isFocused {
+				if isFocused.wrappedValue {
 					_ = container.becomeFirstResponder()
 				} else {
 					_ = container.resignFirstResponder()
