@@ -29,6 +29,7 @@ struct ContentView: View {
 				 Text("System Keyboard")
 			 }
 
+			 Text(isFocused ? "Focused" : "Not Focused")
 			 Button("Toggle Focus") { isFocused.toggle() }
 		 }
 		 .addKeyboard(isFocused: $isFocused, useSystemKeyboard: useSystemKeyboard, .qwertyWithDismiss) { key in

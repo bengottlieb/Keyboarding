@@ -14,6 +14,7 @@ extension KeyboardProviding {
 		func insertText(_ text: String) { _ = sendKey?(KeyDefinition(stringLiteral: text)) }
 		func deleteBackward() { _ = sendKey?(.init(.delete)) }
 		var coordinator: Coordinator?
+		var isCyclingFirstRespond = false
 		
 		override var canBecomeFirstResponder: Bool { true }
 
@@ -38,17 +39,19 @@ extension KeyboardProviding {
 					if isHardwareKeyboardConnected, oldValue == .ifHardware { return }
 				}
 				
+				isCyclingFirstRespond = true
 				_ = resignFirstResponder()
 				_ = becomeFirstResponder()
+				isCyclingFirstRespond = false
 			}}
 		
 		override func resignFirstResponder() -> Bool {
-			coordinator?.keyboardVisibilityChanged(to: false)
+			if !isCyclingFirstRespond { coordinator?.keyboardVisibilityChanged(to: false) }
 			return super.resignFirstResponder()
 		}
 		
 		override func becomeFirstResponder() -> Bool {
-			coordinator?.keyboardVisibilityChanged(to: true)
+			if !isCyclingFirstRespond { coordinator?.keyboardVisibilityChanged(to: true) }
 			return super.becomeFirstResponder()
 		}
 		

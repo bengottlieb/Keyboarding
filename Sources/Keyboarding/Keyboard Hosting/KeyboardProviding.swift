@@ -74,11 +74,12 @@ extension KeyboardProviding {
 		
 		fileprivate func updateFocus() {
 			if isFocused.wrappedValue != wasFocused {
-				print("Focused changed to \(isFocused)")
-				if isFocused.wrappedValue {
-					_ = container.becomeFirstResponder()
-				} else {
-					_ = container.resignFirstResponder()
+				Task { @MainActor in
+					if isFocused.wrappedValue {
+						_ = container.becomeFirstResponder()
+					} else {
+						_ = container.resignFirstResponder()
+					}
 				}
 			}
 

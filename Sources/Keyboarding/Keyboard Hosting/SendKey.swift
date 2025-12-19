@@ -27,18 +27,6 @@ public struct KeySender: Equatable, @unchecked Sendable {
 		self.send = action
 	}
 	
-//	public init(_ action: @escaping HandleKeyPress, file: String = #file, line: Int = #line) {
-//		self.line = line
-//		self.file = file
-//		self.send = { keyPress in
-//			if let key = keyPress as? KeyPress { return action(PressedKey(keyPress: key, string: key.characters)) }
-//			if let string = keyPress as? String { return action(PressedKey(string: string)) }
-//			if let special = keyPress as? SpecialPressedKeys { return action(special.pressedKey)}
-//			if let raw = keyPress as? PressedKey { return action(raw)}
-//			return .ignored
-//		}
-//	}
-
 	nonisolated init() {
 		self.line = 0
 		self.file = ""
