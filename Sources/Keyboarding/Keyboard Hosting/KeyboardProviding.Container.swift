@@ -11,8 +11,8 @@ import Combine
 extension KeyboardProviding {
 	class Container: UIView, UIKeyInput {
 		var hasText: Bool { true }
-		func insertText(_ text: String) { _ = sendKey?(text) }
-		func deleteBackward() { _ = sendKey?(.backspace) }
+		func insertText(_ text: String) { _ = sendKey?(KeyDefinition(stringLiteral: text)) }
+		func deleteBackward() { _ = sendKey?(.init(.delete)) }
 		var coordinator: Coordinator?
 		
 		override var canBecomeFirstResponder: Bool { true }

@@ -1,0 +1,24 @@
+{
+  "originHash" : "2db1697a3aa869bcfbd03f0d1c03ca50bd30dcbffc86a7cf35cec48159cf1510",
+  "pins" : [
+    {
+      "identity" : "suite",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ios-tooling/Suite.git",
+      "state" : {
+        "revision" : "9138f6b4db859b300d4a901ec8e7497de8c233fd",
+        "version" : "1.2.52"
+      }
+    },
+    {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-syntax",
+      "state" : {
+        "revision" : "4799286537280063c85a32f09884cfbca301b1a1",
+        "version" : "602.0.0"
+      }
+    }
+  ],
+  "version" : 3
+}

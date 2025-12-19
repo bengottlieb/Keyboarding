@@ -48,12 +48,12 @@ public struct KeyboardView: View {
 									let rowLeadingMargin = keyboardHorizontalMargins + (rowWidth - CGFloat(row.count) * keyCapWidth) / 2
 				
 									ForEach(row.indices, id: \.self) { x in
-										let action = row[x]
+										let def = row[x]
 										let isNext = false//assistant.nextKey != nil && action.keycapLabel == assistant.nextKey
 										let currentPadding =  0.0//isNext ? 30.0 : 0
 										let keyWidth = keyCapWidth + currentPadding
 										let keyHeight = keyCapHeight// + currentPadding
-										KeyCap(keyCap: action)
+										KeyCapView(definition: def)
 											.buttonStyle(.roundKeyboardKey(isNextKey: isNext, contentPadding: currentPadding / 2))
 											.frame(width: keyWidth, height: keyHeight)
 											.font(.system(size: keyCapWidth * 0.5, weight: .bold, design: .rounded))

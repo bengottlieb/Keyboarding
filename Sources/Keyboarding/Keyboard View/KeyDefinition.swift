@@ -2,48 +2,50 @@
 //  KeyDefinition.swift
 //  Keyboarding
 //
-//  Created by Ben Gottlieb on 7/16/25.
+//  Created by Ben Gottlieb on 12/17/25.
 //
 
 import SwiftUI
 
-public protocol KeyDefinition: Sendable {
-	var string: String? { get set }
-	var keycapLabel: String? { get }
-	var keycapImage: Image? { get }
-	var modifiers: EventModifiers { get }
-	var pressedKey: PressedKey { get }
-}
-
-public extension KeyDefinition {
-	var string: String? {
-		get { nil }
-		set { }
-	}
-	var keycapLabel: String? { nil }
-	var keycapImage: Image? { nil }
-	var modifiers: EventModifiers { [] }
+public struct KeyDefinition: Sendable, Hashable, Identifiable, ExpressibleByStringLiteral {
+	public let string: String?
+	public let type: KeyType
 	
-	var isShifted: Bool { modifiers.contains(.shift) }
-	var pressedKey: PressedKey { PressedKey(string: string) }
+	public var id: String { string ?? type.rawValue }
+	
+	public init(stringLiteral value: StringLiteralType) {
+		string = value
+		type = .letter
+	}
+	
+	public init(_ type: KeyType) {
+		self.type = type
+		string = nil
+	}
+	
+	public init(keyPress: KeyPress) {
+		self.type = .letter
+		string = keyPress.characters
+	}
 }
 
 public extension KeyDefinition {
-	var isDismiss: Bool { self is DismissKeyCommand }
+	enum KeyType: String, Sendable, Codable, Hashable {
+		case letter, delete, dismiss, tab
+		var imageName: String? {
+			switch self {
+			case .dismiss: "keyboard.chevron.compact.down"
+			case .delete: "delete.left"
+			case .tab: "arrow.right.to.line.compact"
+				
+			default: nil
+			}
+		}
+	}
 }
 
-public struct DismissKeyCommand: KeyDefinition {
-	public var keycapImage: Image? { Image(systemName: "keyboard.chevron.compact.down") }
-}
-
-public struct PlainKeyCommand: KeyDefinition {
-	public var string: String?
-	public var keycapLabel: String? { string }
-}
-
-extension String: KeyDefinition {
-	public var text: String? { self }
-	public var keycapLabel: String? { self }
-}
-
-
+let qwerty: [[KeyDefinition]] = [
+	[ "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P" ],
+	[ "A", "S", "D", "F", "G", "H", "J", "K", "L" ],
+	[ .init(.dismiss), "Z", "X", "C", "V", "B", "N", "M", .init(.delete)  ]
+]

@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-
+/*
 public protocol KeySendable { }
 
 public struct PressedKey: CustomStringConvertible, Sendable, KeySendable {
@@ -88,10 +88,17 @@ extension String: KeySendable { }
 
 public enum SpecialPressedKeys: KeySendable {
 	case backspace
+	case dismiss
 	
-	var pressedKey: PressedKey {
+	var pressedKey: KeySendable {
 		switch self {
-		case .backspace: .init(key: .delete)
+		case .backspace: PressedKey(key: .delete)
+		case .dismiss: PressedKey(key: .dismissKeyboard)
 		}
 	}
 }
+
+extension KeyEquivalent {
+	public static let dismissKeyboard = KeyEquivalent("d")
+}
+*/
