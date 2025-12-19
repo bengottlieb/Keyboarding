@@ -46,11 +46,12 @@ extension KeyboardProviding {
 			}}
 		
 		override func resignFirstResponder() -> Bool {
-			if !isCyclingFirstRespond { coordinator?.keyboardVisibilityChanged(to: false) }
+			if !isCyclingFirstRespond, !UIView.isResigningFirstResponderOnAll { coordinator?.keyboardVisibilityChanged(to: false) }
 			return super.resignFirstResponder()
 		}
 		
 		override func becomeFirstResponder() -> Bool {
+			if UIView.isResigningFirstResponderOnAll { return false }
 			if !isCyclingFirstRespond { coordinator?.keyboardVisibilityChanged(to: true) }
 			return super.becomeFirstResponder()
 		}

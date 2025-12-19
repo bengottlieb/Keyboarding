@@ -73,16 +73,17 @@ extension KeyboardProviding {
 		}
 		
 		fileprivate func updateFocus() {
-			if isFocused.wrappedValue != wasFocused {
-				Task { @MainActor in
-					if isFocused.wrappedValue {
-						_ = container.becomeFirstResponder()
-					} else {
-						_ = container.resignFirstResponder()
+			if !UIView.isResigningFirstResponderOnAll {
+				if isFocused.wrappedValue != wasFocused {
+					Task { @MainActor in
+						if isFocused.wrappedValue {
+							_ = container.becomeFirstResponder()
+						} else {
+							_ = container.resignFirstResponder()
+						}
 					}
 				}
 			}
-
 		}
 	}
 }
