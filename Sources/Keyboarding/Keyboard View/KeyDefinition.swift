@@ -24,8 +24,12 @@ public struct KeyDefinition: Sendable, Hashable, Identifiable, ExpressibleByStri
 	}
 	
 	public init(keyPress: KeyPress) {
-		self.type = .letter
 		string = keyPress.characters
+		switch keyPress.key {
+		case .delete, .deleteForward: type = .delete
+			
+		default: type = .letter
+		}
 	}
 }
 
