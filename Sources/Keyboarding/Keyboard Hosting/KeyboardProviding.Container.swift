@@ -5,8 +5,12 @@
 //  Created by Ben Gottlieb on 7/15/25.
 //
 
-import SwiftUI
+import Suite
 import Combine
+
+@MainActor extension Gestalt {
+	public static var isHardwareKeyboardConnected: Bool { HardwareKeyboard.instance.keyboardIsConnected }
+}
 
 extension KeyboardProviding {
 	class Container: UIView, UIKeyInput {
@@ -21,22 +25,20 @@ extension KeyboardProviding {
 		let host: UIViewController
 		let keyboard: UIViewController
 		var sendKey: KeySender?
-		
-		var isHardwareKeyboardConnected: Bool { HardwareKeyboard.instance.keyboardIsConnected }
-		
+				
 		var useSystemKeyboard: UseSystemKeyboard = .never {
 			didSet {
 				if !isFirstResponder { return }
 				if useSystemKeyboard == oldValue { return }
 				switch useSystemKeyboard {
 				case .never:
-					if !isHardwareKeyboardConnected, oldValue == .ifHardware { return }
+					if !Gestalt.isHardwareKeyboardConnected, oldValue == .ifHardware { return }
 					
 				case .ifHardware:
 					if useSystemKeyboard == .always { return }
 					
 				case .always:
-					if isHardwareKeyboardConnected, oldValue == .ifHardware { return }
+					if Gestalt.isHardwareKeyboardConnected, oldValue == .ifHardware { return }
 				}
 				
 				isCyclingFirstRespond = true
@@ -60,7 +62,7 @@ extension KeyboardProviding {
 			switch useSystemKeyboard {
 			case .always: nil
 			case .ifHardware:
-				isHardwareKeyboardConnected ? nil : keyboard.view
+				Gestalt.isHardwareKeyboardConnected ? nil : keyboard.view
 			case .never:
 				keyboard.view
 			}
