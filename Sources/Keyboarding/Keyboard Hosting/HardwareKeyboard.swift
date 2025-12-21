@@ -11,7 +11,7 @@ import Combine
 import GameKit
 
 @MainActor public class HardwareKeyboard: ObservableObject {
-	static var instance = HardwareKeyboard()
+	static public var instance = HardwareKeyboard()
 	
 	var cancelBag: Set<AnyCancellable> = []
 	@Published public var keyboardIsConnected = GCKeyboard.coalesced != nil
@@ -32,7 +32,7 @@ import GameKit
 }
 #else
 @MainActor public class HardwareKeyboard: ObservableObject {
-	static var instance = HardwareKeyboard()
+	static public var instance = HardwareKeyboard()
 	
 	@Published public var keyboardIsConnected = true
 }
