@@ -36,12 +36,20 @@ public struct KeyDefinition: Sendable, Hashable, Identifiable, ExpressibleByStri
 	}
 	
 	public init(keyPress: KeyPress) {
-		string = keyPress.characters
 		self.keyPress = keyPress
 		switch keyPress.key {
-		case .delete, .deleteForward: type = .delete
+		case .delete, .deleteForward:
+			type = .delete
+			string = nil
 			
-		default: type = .letter
+		case .leftArrow, .rightArrow, .downArrow, .upArrow:
+			type = .navigation
+			string = nil
+
+		default:
+			type = .letter
+			string = keyPress.characters
+
 		}
 	}
 	
@@ -53,7 +61,7 @@ public struct KeyDefinition: Sendable, Hashable, Identifiable, ExpressibleByStri
 
 public extension KeyDefinition {
 	enum KeyType: String, Sendable, Codable, Hashable {
-		case letter, delete, dismiss, tab, enter, space
+		case letter, delete, dismiss, tab, enter, space, navigation
 		var imageName: String? {
 			switch self {
 			case .dismiss: "keyboard.chevron.compact.down"
@@ -61,6 +69,7 @@ public extension KeyDefinition {
 			case .tab: "arrow.right.to.line.compact"
 			case .enter: "return"
 			case .space: "space"
+			case .navigation: "arrow.left.arrow.right"
 
 			default: nil
 			}
