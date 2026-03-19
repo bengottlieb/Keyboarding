@@ -16,6 +16,9 @@ extension EnvironmentValues {
 public struct KeyboardView: View {
 	var keymap: Keymap = .qwertyWithDismiss
 	public var id: String { "\(keymap)" }
+	@FocusState var isFocused: Bool
+	@Environment(\.sendKey) var sendKey
+
 //	private var assistant = KeyboardAssistant.instance
 //	var hardwareKeyboard = HardwareKeyboard.instance
 
@@ -72,6 +75,12 @@ public struct KeyboardView: View {
 			//			}
 		}
 		.frame(width: 400, height: 186)
+		.focusable()
+		.onAppear { isFocused = true }
+		.focused($isFocused)
+		.onKeyPress { key in
+			sendKey(.init(keyPress: key))
+		}
 	}
 }
 
