@@ -12,13 +12,14 @@ public typealias HandleKeyPress = (KeyDefinition) -> KeyPress.Result
 public struct KeySender: Equatable, @unchecked Sendable {
 	let line: Int
 	let file: String
+	var date = Date.now
 	let send: (KeyDefinition) -> KeyPress.Result
 	public func callAsFunction(_ key: KeyDefinition) -> KeyPress.Result {
 		send(key)
 	}
 
 	public static func ==(lhs: Self, rhs: Self) -> Bool {
-		lhs.line == rhs.line && lhs.file == rhs.file
+		lhs.line == rhs.line && lhs.file == rhs.file && lhs.date == rhs.date
 	}
 	
 	public init(_ action: @escaping (KeyDefinition) -> KeyPress.Result, file: String = #file, line: Int = #line) {
