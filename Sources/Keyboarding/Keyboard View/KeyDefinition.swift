@@ -78,7 +78,7 @@ public extension KeyDefinition {
 			case .space: "space"
 			case .navigation: "arrow.left.arrow.right"
 
-			case .custom(let _, let imageName, let _): imageName
+			case .custom(_, let imageName, _): imageName
 			default: nil
 			}
 		}
