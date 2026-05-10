@@ -78,16 +78,16 @@ extension KeyboardProviding {
 
 			host.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 			keyboard.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-			keyboardChangeCancellable = HardwareKeyboard.instance.objectWillChange.sink { [weak self] _ in
-				guard let self else { return }
-				if useSystemKeyboard == .ifHardware, isFirstResponder {
-					Task {
-//						resignFirstResponder()
-//						try? await Task.sleep(for: .seconds(0.2))
-//						becomeFirstResponder()
-					}
-				}
-			}
+//			keyboardChangeCancellable = HardwareKeyboard.instance.objectWillChange.sink { [weak self] _ in
+//				guard let self else { return }
+//				if useSystemKeyboard == .ifHardware, isFirstResponder {
+//					Task {
+////						resignFirstResponder()
+////						try? await Task.sleep(for: .seconds(0.2))
+////						becomeFirstResponder()
+//					}
+//				}
+//			}
 		}
 
 		required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }

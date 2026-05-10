@@ -18,7 +18,7 @@ let package = Package(
         ),
     ],
 	 dependencies: [
-		 .package(url: "https://github.com/ios-tooling/Suite.git", from: "1.2.50"),
+		 .package(url: "https://github.com/ios-tooling/Suite.git", from: "1.4.3"),
 	],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.

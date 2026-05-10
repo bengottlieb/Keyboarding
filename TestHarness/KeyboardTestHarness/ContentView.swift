@@ -17,6 +17,7 @@ struct ContentView: View {
 		 VStack {
 			 TextField("Text Field", text: $text)
 			 Text(text)
+			 Text(HardwareKeyboard.instance.keyboardIsConnected ? "Hardware Keyboard Connected" : "No Hardware Keyboard")
 			 LabeledContent {
 				 Picker("System Keyboard", selection: $useSystemKeyboard) {
 					 Text("Always").tag(UseSystemKeyboard.always)

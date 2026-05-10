@@ -10,11 +10,11 @@ import Combine
 #if os(iOS)
 import GameKit
 
-@MainActor public class HardwareKeyboard: ObservableObject {
+@MainActor @Observable public class HardwareKeyboard {
 	static public let instance = HardwareKeyboard()
 
 	var cancelBag: Set<AnyCancellable> = []
-	@Published public var keyboardIsConnected: Bool
+	public var keyboardIsConnected: Bool
 
 	func setup() { }
 
