@@ -11,7 +11,11 @@ import SwiftUI
 struct RoundKeyboardKeyButtonStyle: ButtonStyle {
 	var isNextKey = false
 	var contentPadding = 0.0
-	var foregroundColor = Color(UIColor.systemBackground)
+	#if os(iOS)
+		var foregroundColor = Color(UIColor.systemBackground)
+	#else
+		var foregroundColor = Color(NSColor.windowBackgroundColor)
+	#endif
 	var backgroundColor = Color.primary
 	
 	func makeBody(configuration: Configuration) -> some View {

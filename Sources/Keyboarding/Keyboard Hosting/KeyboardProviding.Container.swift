@@ -12,6 +12,7 @@ import Combine
 	public static var isHardwareKeyboardConnected: Bool { HardwareKeyboard.instance.keyboardIsConnected }
 }
 
+#if os(iOS)
 extension KeyboardProviding {
 	class Container: UIView, UIKeyInput {
 		var hasText: Bool { true }
@@ -92,6 +93,7 @@ extension KeyboardProviding {
 
 		required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 	}
-	
+
 
 }
+#endif

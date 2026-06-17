@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+#if os(iOS)
 struct KeyboardProviding<Content: View, KeyboardView: View>: UIViewRepresentable {
 	@ViewBuilder var content: () -> Content
 	@ViewBuilder var keyboard: () -> KeyboardView
@@ -99,3 +100,4 @@ struct UpdatingContainer<Content: View>: View {
 		.onAppear { setup($content) }
 	}
 }
+#endif

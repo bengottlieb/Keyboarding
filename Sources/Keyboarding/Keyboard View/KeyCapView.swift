@@ -16,8 +16,10 @@ struct KeyCapView: View {
 	func processKeyPress() {
 		switch definition.type {
 		case .dismiss:
-			UIView.resignAllFirstResponders()
-			
+			#if os(iOS)
+				UIView.resignAllFirstResponders()
+			#endif
+
 		default:
 			_ = sendKey(definition)
 		}

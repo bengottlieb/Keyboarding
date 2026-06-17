@@ -7,12 +7,6 @@
 
 import SwiftUI
 
-#if os(iOS)
-
-extension EnvironmentValues {
-//	@Entry var keyboardOptions: PZLKeyboardEntryOptions = .default
-}
-
 public struct KeyboardView: View {
 	var keymap: Keymap = .qwertyWithDismiss
 	public var id: String { "\(keymap)" }
@@ -25,17 +19,21 @@ public struct KeyboardView: View {
 	public init(keymap: Keymap? = nil) {
 		self.keymap = keymap ?? .qwertyWithDismiss
 	}
-	
+
 	var keyboardHorizontalMargins: CGFloat { 8 }
-	
+
 	var keyCapHeight: CGFloat {
-		if UIDevice.current.orientation.isLandscape {
-			44
-		} else {
-			54//min(keyCapWidth, 54)
-		}
+		#if os(iOS)
+			if UIDevice.current.orientation.isLandscape {
+				44
+			} else {
+				54//min(keyCapWidth, 54)
+			}
+		#else
+			54
+		#endif
 	}
-	
+
 	public var body: some View {
 		GeometryReader { geo in
 			ZStack(alignment: .topLeading) {
@@ -45,11 +43,11 @@ public struct KeyboardView: View {
 				Rectangle()
 					.fill(.clear)
 					.frame(height: keyCapHeight * CGFloat(keymap.rows.count) + 24)
-				
+
 								ForEach(keymap.rows.indices, id: \.self) { y in
 									let row = keymap.rows[y]
 									let rowLeadingMargin = keyboardHorizontalMargins + (rowWidth - CGFloat(row.count) * keyCapWidth) / 2
-				
+
 									ForEach(row.indices, id: \.self) { x in
 										let def = row[x]
 										let isNext = false//assistant.nextKey != nil && action.keycapLabel == assistant.nextKey
@@ -87,13 +85,13 @@ public struct KeyboardView: View {
 
 struct KeycapSizePreferenceKey: PreferenceKey {
 	nonisolated(unsafe) static var defaultValue: CGSize?
-	
+
 	static func reduce(value: inout CGSize?, nextValue: () -> CGSize?) {
 		guard let inValue = value else {
 			value = nextValue()
 			return
 		}
-		
+
 		if let next = nextValue() {
 			value = CGSize(width: min(next.width, inValue.width), height: min(next.height, inValue.height))
 		}
@@ -110,18 +108,3 @@ struct KeycapSizePreferenceKey: PreferenceKey {
 		}
 	}
 }
-#endif
-
-#if os(macOS)
-public struct KeyboardView: View {
-	public init(width: Double) { }
-	
-	public init(keymap: Keymap? = nil, safeFrame: CGRect) {
-		
-	}
-
-	public var body: some View {
-		EmptyView()
-	}
-}
-#endif
