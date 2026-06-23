@@ -12,6 +12,7 @@ struct KeyCapView: View {
 //	@Environment(\.keyboardOptions) var keyboardOptions
 	let definition: KeyDefinition
 	@Environment(\.sendKey) var sendKey
+	@Environment(\.keyboardStyle) var kbStyle
 	
 	func processKeyPress() {
 		switch definition.type {
@@ -37,6 +38,6 @@ struct KeyCapView: View {
 				Image(systemName: image)
 			}
 		}
-		.sensoryFeedback(.selection, trigger: hapticTrigger)
+		.sensoryFeedback(trigger: hapticTrigger) { _, _ in kbStyle.enableHaptics ? .selection : nil }
 	}
 }

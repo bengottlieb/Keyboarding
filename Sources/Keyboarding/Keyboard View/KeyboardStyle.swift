@@ -19,14 +19,18 @@ public struct KeyboardStyle: Sendable, Equatable {
 	public var specialInk: Color
 	/// Key corner radius.
 	public var cornerRadius: CGFloat
+	/// Whether key taps produce selection haptics.
+	public var enableHaptics: Bool
 
 	public init(background: Color = .clear, keyFace: Color = Color.gray.opacity(0.22),
-	            keyInk: Color = .primary, specialInk: Color = .secondary, cornerRadius: CGFloat = 6) {
+	            keyInk: Color = .primary, specialInk: Color = .secondary, cornerRadius: CGFloat = 6,
+	            enableHaptics: Bool = true) {
 		self.background = background
 		self.keyFace = keyFace
 		self.keyInk = keyInk
 		self.specialInk = specialInk
 		self.cornerRadius = cornerRadius
+		self.enableHaptics = enableHaptics
 	}
 
 	public static let `default` = KeyboardStyle()
