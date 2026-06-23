@@ -73,7 +73,8 @@ public struct KeyboardView: View {
 			//					.ignoresSafeArea()
 			//			}
 		}
-		.frame(width: 400, height: 186)
+		.frame(maxWidth: .infinity)
+		.frame(height: 186)
 		.background(kbStyle.background)
 		.focusable()
 		.onAppear { isFocused = true }
