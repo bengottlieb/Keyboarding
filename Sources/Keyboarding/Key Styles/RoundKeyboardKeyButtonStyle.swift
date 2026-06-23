@@ -9,15 +9,12 @@ import SwiftUI
 
 
 struct RoundKeyboardKeyButtonStyle: ButtonStyle {
+	var faceColor: Color = Color.gray.opacity(0.22)
+	var inkColor: Color = .primary
+	var cornerRadius: CGFloat = 6
 	var isNextKey = false
 	var contentPadding = 0.0
-	#if os(iOS)
-		var foregroundColor = Color(UIColor.systemBackground)
-	#else
-		var foregroundColor = Color(NSColor.windowBackgroundColor)
-	#endif
-	var backgroundColor = Color.primary
-	
+
 	func makeBody(configuration: Configuration) -> some View {
 		ZStack {
 			configuration.label
@@ -26,21 +23,24 @@ struct RoundKeyboardKeyButtonStyle: ButtonStyle {
 			configuration.label
 		}
 		.frame(maxWidth: .infinity, maxHeight: .infinity)
-//		.aspectRatio(1.0, contentMode: .fit)
 		.padding(.bottom, 10)
 		.padding(.top, 2)
 		.background {
-			RoundedRectangle(cornerRadius: 6)
-				.fill(backgroundColor)
+			RoundedRectangle(cornerRadius: cornerRadius)
+				.fill(faceColor)
 				.padding(2)
 		}
 		.scaleEffect(configuration.isPressed ? 0.9 : 1)
-		.foregroundStyle(foregroundColor.opacity(configuration.isPressed ? 0.7 : 1))
+		.foregroundStyle(inkColor.opacity(configuration.isPressed ? 0.7 : 1))
 		.padding(contentPadding)
 		.contentShape(.rect)
 	}
 }
 
 extension ButtonStyle where Self == RoundKeyboardKeyButtonStyle {
-	static func roundKeyboardKey(isNextKey: Bool, contentPadding: Double = 0) -> Self { RoundKeyboardKeyButtonStyle(isNextKey: isNextKey, contentPadding: contentPadding) }
+	static func roundKeyboardKey(faceColor: Color, inkColor: Color, cornerRadius: CGFloat,
+	                             isNextKey: Bool = false, contentPadding: Double = 0) -> Self {
+		RoundKeyboardKeyButtonStyle(faceColor: faceColor, inkColor: inkColor, cornerRadius: cornerRadius,
+		                            isNextKey: isNextKey, contentPadding: contentPadding)
+	}
 }

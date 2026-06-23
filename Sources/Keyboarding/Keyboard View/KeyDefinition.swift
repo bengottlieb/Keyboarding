@@ -68,7 +68,7 @@ public struct KeyDefinition: Sendable, Hashable, Identifiable, ExpressibleByStri
 
 public extension KeyDefinition {
 	enum KeyType: Sendable, Hashable {
-		case letter, delete, dismiss, tab, enter, space, navigation, custom(id: String, imageName: String, action: @Sendable () -> Void)
+		case letter, delete, dismiss, tab, enter, space, navigation, pencil, custom(id: String, imageName: String, action: @Sendable () -> Void)
 		var imageName: String? {
 			switch self {
 			case .dismiss: "keyboard.chevron.compact.down"
@@ -77,6 +77,7 @@ public extension KeyDefinition {
 			case .enter: "return"
 			case .space: "space"
 			case .navigation: "arrow.left.arrow.right"
+			case .pencil: "pencil"
 
 			case .custom(_, let imageName, _): imageName
 			default: nil
@@ -96,6 +97,7 @@ public extension KeyDefinition {
 			case .enter: "enter"
 			case .space: "space"
 			case .navigation: "navigation"
+			case .pencil: "pencil"
 			case .custom(_, let id, _): id
 			}
 		}

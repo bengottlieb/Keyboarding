@@ -12,6 +12,7 @@ public struct KeyboardView: View {
 	public var id: String { "\(keymap)" }
 	@FocusState var isFocused: Bool
 	@Environment(\.sendKey) var sendKey
+	@Environment(\.keyboardStyle) var kbStyle
 
 //	private var assistant = KeyboardAssistant.instance
 //	var hardwareKeyboard = HardwareKeyboard.instance
@@ -55,7 +56,7 @@ public struct KeyboardView: View {
 										let keyWidth = keyCapWidth + currentPadding
 										let keyHeight = keyCapHeight// + currentPadding
 										KeyCapView(definition: def)
-											.buttonStyle(.roundKeyboardKey(isNextKey: isNext, contentPadding: currentPadding / 2))
+											.buttonStyle(.roundKeyboardKey(faceColor: kbStyle.keyFace, inkColor: def.string == nil ? kbStyle.specialInk : kbStyle.keyInk, cornerRadius: kbStyle.cornerRadius, isNextKey: isNext, contentPadding: currentPadding / 2))
 											.frame(width: keyWidth, height: keyHeight)
 											.font(.system(size: keyCapWidth * 0.5, weight: .bold, design: .rounded))
 											.zIndex(isNext ? 100 : 0)
@@ -73,6 +74,7 @@ public struct KeyboardView: View {
 			//			}
 		}
 		.frame(width: 400, height: 186)
+		.background(kbStyle.background)
 		.focusable()
 		.onAppear { isFocused = true }
 		.focused($isFocused)
