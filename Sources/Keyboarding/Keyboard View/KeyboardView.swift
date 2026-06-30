@@ -13,6 +13,8 @@ public struct KeyboardView: View {
 	@FocusState var isFocused: Bool
 	@Environment(\.sendKey) var sendKey
 	@Environment(\.keyboardStyle) var kbStyle
+	@Environment(\.keyboardNextKey) var nextKey
+	@Environment(\.keyboardAssistDebug) var assistDebug
 
 //	private var assistant = KeyboardAssistant.instance
 //	var hardwareKeyboard = HardwareKeyboard.instance
@@ -51,14 +53,26 @@ public struct KeyboardView: View {
 
 									ForEach(row.indices, id: \.self) { x in
 										let def = row[x]
-										let isNext = false//assistant.nextKey != nil && action.keycapLabel == assistant.nextKey
-										let currentPadding =  0.0//isNext ? 30.0 : 0
+										// Typing assist: enlarge the hit target of the key matching the
+										// expected next letter so off-boundary ("fat finger") taps still land
+										// on it. The visible keycap is unchanged; the frame (and contentShape)
+										// grows and floats above its neighbors via zIndex.
+										let isNext = nextKey.map { def.string?.uppercased() == $0.uppercased() } ?? false
+										let currentPadding = isNext ? keyCapWidth * kbStyle.nextKeyHitExpansion : 0
 										let keyWidth = keyCapWidth + currentPadding
-										let keyHeight = keyCapHeight// + currentPadding
+										let keyHeight = keyCapHeight + currentPadding
 										KeyCapView(definition: def)
 											.buttonStyle(.roundKeyboardKey(faceColor: kbStyle.keyFace, inkColor: def.string == nil ? kbStyle.specialInk : kbStyle.keyInk, cornerRadius: kbStyle.cornerRadius, isNextKey: isNext, contentPadding: currentPadding / 2))
 											.frame(width: keyWidth, height: keyHeight)
 											.font(.system(size: keyCapWidth * 0.5, weight: .bold, design: .rounded))
+											.overlay {
+												if isNext && assistDebug {
+													RoundedRectangle(cornerRadius: kbStyle.cornerRadius)
+														.fill(Color.accentColor.opacity(0.2))
+														.overlay(RoundedRectangle(cornerRadius: kbStyle.cornerRadius).strokeBorder(Color.accentColor, lineWidth: 2))
+														.allowsHitTesting(false)
+												}
+											}
 											.zIndex(isNext ? 100 : 0)
 											.offset(x: rowLeadingMargin + CGFloat(x) * keyCapWidth - currentPadding / 2, y: CGFloat(y) * keyCapHeight - currentPadding / 2)
 									}
