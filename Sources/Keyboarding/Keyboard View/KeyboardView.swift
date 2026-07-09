@@ -64,7 +64,7 @@ public struct KeyboardView: View {
 										KeyCapView(definition: def)
 											.buttonStyle(.roundKeyboardKey(faceColor: kbStyle.keyFace, inkColor: def.string == nil ? kbStyle.specialInk : kbStyle.keyInk, cornerRadius: kbStyle.cornerRadius, isNextKey: isNext, contentPadding: currentPadding / 2))
 											.frame(width: keyWidth, height: keyHeight)
-											.font(.system(size: keyCapWidth * 0.5, weight: .bold, design: .rounded))
+											.font(kbStyle.keyFont.font(size: keyCapWidth * 0.5))
 											.overlay {
 												if isNext && assistDebug {
 													RoundedRectangle(cornerRadius: kbStyle.cornerRadius)
