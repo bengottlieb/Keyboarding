@@ -12,14 +12,16 @@ public typealias HandleKeyPress = (KeyDefinition) -> KeyPress.Result
 public struct KeySender: Equatable, @unchecked Sendable {
 	let line: Int
 	let file: String
-	var date = Date.now
 	let send: (KeyDefinition) -> KeyPress.Result
 	public func callAsFunction(_ key: KeyDefinition) -> KeyPress.Result {
 		send(key)
 	}
 
+	// Identified by creation site only, so a sender rebuilt on every render of its
+	// host compares equal and the `sendKey` environment stays stable — otherwise
+	// each keystroke invalidates every keycap reading it.
 	public static func ==(lhs: Self, rhs: Self) -> Bool {
-		lhs.line == rhs.line && lhs.file == rhs.file && lhs.date == rhs.date
+		lhs.line == rhs.line && lhs.file == rhs.file
 	}
 	
 	public init(_ action: @escaping (KeyDefinition) -> KeyPress.Result, file: String = #file, line: Int = #line) {
