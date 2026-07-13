@@ -4,40 +4,44 @@
 //
 //  Created by Ben Gottlieb on 7/16/25.
 //
+//  A single keycap's visuals. Interaction lives in KeyboardView, which tracks
+//  each touch across the whole keyboard (iOS-style: preview on touch-down,
+//  slide to retarget, commit on touch-up) and passes the pressed state down.
+//
 
-import Suite
+import SwiftUI
 
 struct KeyCapView: View {
-	@State private var hapticTrigger = false
-//	@Environment(\.keyboardOptions) var keyboardOptions
 	let definition: KeyDefinition
-	@Environment(\.sendKey) var sendKey
+	var isPressed = false
 	@Environment(\.keyboardStyle) var kbStyle
-	
-	func processKeyPress() {
-		switch definition.type {
-		case .dismiss:
-			#if os(iOS)
-				UIView.resignAllFirstResponders()
-			#endif
 
-		default:
-			_ = sendKey(definition)
-		}
-	}
-	
 	var body: some View {
-		Button(action: {
-			hapticTrigger.toggle()
-			processKeyPress()
-			//keyboardTarget?.handle(key: keyCap.forTarget(keyboardTarget), options: keyboardOptions, focus: nil)
-		}) {
-			if let text = definition.string {
-				Text(text)
-			} else if let image = definition.type.imageName {
-				Image(systemName: image)
-			}
+		ZStack {
+			label
+				.offset(y: isPressed ? 0 : 2)
+				.opacity(0.25)
+			label
 		}
-		.sensoryFeedback(trigger: hapticTrigger) { _, _ in kbStyle.enableHaptics ? .selection : nil }
+		.frame(maxWidth: .infinity, maxHeight: .infinity)
+		.padding(.bottom, 10)
+		.padding(.top, 2)
+		.background {
+			RoundedRectangle(cornerRadius: kbStyle.cornerRadius)
+				.fill(kbStyle.keyFace)
+				.padding(2)
+		}
+		.scaleEffect(isPressed ? 0.9 : 1)
+		.foregroundStyle(ink.opacity(isPressed ? 0.7 : 1))
+	}
+
+	private var ink: Color { definition.string == nil ? kbStyle.specialInk : kbStyle.keyInk }
+
+	@ViewBuilder private var label: some View {
+		if let text = definition.string {
+			Text(text)
+		} else if let image = definition.type.imageName {
+			Image(systemName: image)
+		}
 	}
 }
