@@ -42,6 +42,10 @@ public struct KeyboardStyle: Sendable, Equatable {
 	public var cornerRadius: CGFloat
 	/// Whether key taps produce selection haptics.
 	public var enableHaptics: Bool
+	/// Whether a finger landing on a key plays the system keyboard click. Played at
+	/// touch-down (like the system keyboard), not at commit — the sound is the
+	/// strongest "the key registered" cue, so it must not wait for touch-up.
+	public var enableKeySounds: Bool
 	/// How much the assisted (`keyboardNextKey`) key's hit area grows, as a fraction
 	/// of a key's width. The visible keycap is unchanged; only the touch target bleeds
 	/// over the neighbors to bias "fat finger" taps toward the expected letter.
@@ -49,7 +53,8 @@ public struct KeyboardStyle: Sendable, Equatable {
 
 	public init(background: Color = .clear, keyFace: Color = Color.gray.opacity(0.22),
 	            keyInk: Color = .primary, specialInk: Color = .secondary, keyFont: KeyboardFont = .init(),
-	            cornerRadius: CGFloat = 6, enableHaptics: Bool = true, nextKeyHitExpansion: CGFloat = 0.5) {
+	            cornerRadius: CGFloat = 6, enableHaptics: Bool = true, enableKeySounds: Bool = true,
+	            nextKeyHitExpansion: CGFloat = 0.5) {
 		self.background = background
 		self.keyFace = keyFace
 		self.keyInk = keyInk
@@ -57,6 +62,7 @@ public struct KeyboardStyle: Sendable, Equatable {
 		self.keyFont = keyFont
 		self.cornerRadius = cornerRadius
 		self.enableHaptics = enableHaptics
+		self.enableKeySounds = enableKeySounds
 		self.nextKeyHitExpansion = nextKeyHitExpansion
 	}
 

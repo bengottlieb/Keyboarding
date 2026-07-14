@@ -9,6 +9,9 @@
 //
 
 import SwiftUI
+#if canImport(AudioToolbox)
+	import AudioToolbox
+#endif
 
 @Observable @MainActor final class KeyboardTouchModel {
 	// One entry per finger currently down, keyed by the key it first touched;
@@ -25,15 +28,25 @@ import SwiftUI
 	// Live touches win over lingering ones for the same origin key.
 	var visible: [String: KeyDefinition] { lingering.merging(targets) { _, live in live } }
 
-	func update(origin: KeyDefinition, target: KeyDefinition?) {
+	func update(origin: KeyDefinition, target: KeyDefinition?, click: Bool) {
 		guard targets[origin.id] != target else { return }
 		if let target {
+			// Click only when the finger lands (not on slide-retarget), and straight
+			// from the gesture callback — waiting for a render would read as lag.
+			if click, targets[origin.id] == nil { Self.playClick() }
 			targets[origin.id] = target
 			hapticPulse += 1
 		} else {
 			// Slid off the keyboard: a deliberate cancel, no linger.
 			targets.removeValue(forKey: origin.id)
 		}
+	}
+
+	// The system keyboard "Tock", same sound at the same moment as a hardware keycap.
+	private static func playClick() {
+		#if canImport(AudioToolbox)
+			AudioServicesPlaySystemSound(1104)
+		#endif
 	}
 
 	func end(origin: KeyDefinition) {

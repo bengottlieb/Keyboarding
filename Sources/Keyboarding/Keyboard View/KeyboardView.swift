@@ -119,7 +119,8 @@ public struct KeyboardView: View {
 	private func keyDrag(from origin: KeyDefinition, metrics: KeyboardMetrics, assistKey: KeyDefinition?, assistExpansion: CGFloat) -> some Gesture {
 		DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.space))
 			.onChanged { value in
-				touches.update(origin: origin, target: metrics.key(at: value.location, assistKey: assistKey, assistExpansion: assistExpansion))
+				touches.update(origin: origin, target: metrics.key(at: value.location, assistKey: assistKey, assistExpansion: assistExpansion),
+				               click: kbStyle.enableKeySounds)
 			}
 			.onEnded { value in
 				touches.end(origin: origin)
