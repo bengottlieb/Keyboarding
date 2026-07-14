@@ -14,7 +14,16 @@ import SwiftUI
 	// One entry per finger currently down, keyed by the key it first touched;
 	// the value is the key now under that finger.
 	private(set) var targets: [String: KeyDefinition] = [:]
+	// Keys whose finger just lifted, kept visible briefly: a fast tap is shorter
+	// than the bubble's render latency, so without this the preview never shows.
+	private(set) var lingering: [String: KeyDefinition] = [:]
 	private(set) var hapticPulse = 0
+
+	private var lingerTasks: [String: Task<Void, Never>] = [:]
+	private let lingerDuration = Duration.milliseconds(120)
+
+	// Live touches win over lingering ones for the same origin key.
+	var visible: [String: KeyDefinition] { lingering.merging(targets) { _, live in live } }
 
 	func update(origin: KeyDefinition, target: KeyDefinition?) {
 		guard targets[origin.id] != target else { return }
@@ -22,12 +31,21 @@ import SwiftUI
 			targets[origin.id] = target
 			hapticPulse += 1
 		} else {
+			// Slid off the keyboard: a deliberate cancel, no linger.
 			targets.removeValue(forKey: origin.id)
 		}
 	}
 
 	func end(origin: KeyDefinition) {
-		targets.removeValue(forKey: origin.id)
+		guard let key = targets.removeValue(forKey: origin.id) else { return }
+		lingering[origin.id] = key
+		lingerTasks[origin.id]?.cancel()
+		lingerTasks[origin.id] = Task { [weak self, lingerDuration] in
+			try? await Task.sleep(for: lingerDuration)
+			guard !Task.isCancelled else { return }
+			self?.lingering.removeValue(forKey: origin.id)
+			self?.lingerTasks.removeValue(forKey: origin.id)
+		}
 	}
 }
 
@@ -37,9 +55,10 @@ struct KeyboardTouchOverlay: View {
 	@Environment(\.keyboardStyle) var kbStyle
 
 	var body: some View {
+		let visible = touches.visible
 		ZStack(alignment: .topLeading) {
-			ForEach(touches.targets.keys.sorted(), id: \.self) { originID in
-				if let target = touches.targets[originID], let rect = metrics.rect(for: target) {
+			ForEach(visible.keys.sorted(), id: \.self) { originID in
+				if let target = visible[originID], let rect = metrics.rect(for: target) {
 					pressTint(over: rect)
 					if target.type == .letter, let text = target.string {
 						bubble(text, above: rect)
