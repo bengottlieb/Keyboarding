@@ -4,22 +4,21 @@
 //
 //  Created by Ben Gottlieb on 7/16/25.
 //
-//  A single keycap's visuals. Interaction lives in KeyboardView, which tracks
-//  each touch across the whole keyboard (iOS-style: preview on touch-down,
-//  slide to retarget, commit on touch-up) and passes the pressed state down.
+//  A single keycap's static visuals. Interaction lives in KeyboardView's
+//  per-key drag gestures, and press feedback (tint + preview bubble) in
+//  KeyboardTouchOverlay — keycaps never re-render while typing.
 //
 
 import SwiftUI
 
 struct KeyCapView: View {
 	let definition: KeyDefinition
-	var isPressed = false
 	@Environment(\.keyboardStyle) var kbStyle
 
 	var body: some View {
 		ZStack {
 			label
-				.offset(y: isPressed ? 0 : 2)
+				.offset(y: 2)
 				.opacity(0.25)
 			label
 		}
@@ -31,8 +30,7 @@ struct KeyCapView: View {
 				.fill(kbStyle.keyFace)
 				.padding(2)
 		}
-		.scaleEffect(isPressed ? 0.9 : 1)
-		.foregroundStyle(ink.opacity(isPressed ? 0.7 : 1))
+		.foregroundStyle(ink)
 	}
 
 	private var ink: Color { definition.string == nil ? kbStyle.specialInk : kbStyle.keyInk }

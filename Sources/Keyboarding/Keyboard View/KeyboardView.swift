@@ -22,11 +22,11 @@ public struct KeyboardView: View {
 	@Environment(\.keyboardNextKey) var nextKey
 	@Environment(\.keyboardAssistDebug) var assistDebug
 
-	// One entry per finger currently down, keyed by the key it first touched
-	// (each keycap runs its own drag gesture, so rolling multi-finger typing
-	// tracks independently); the value is the key now under that finger.
-	@State private var touchTargets: [String: KeyDefinition] = [:]
-	@State private var keyChangeHaptic = 0
+	// Live-touch state. Deliberately NOT read in this body — only the touch
+	// overlay observes it, so fingers going down and sliding never re-render
+	// the keycaps (each keycap runs its own drag gesture, so rolling
+	// multi-finger typing tracks independently).
+	@State private var touches = KeyboardTouchModel()
 
 	private static let space = "Keyboarding.KeyboardView"
 
@@ -59,7 +59,6 @@ public struct KeyboardView: View {
 			                              horizontalMargin: keyboardHorizontalMargins)
 			let assistKey = assistKey
 			let assistExpansion = assistKey == nil ? 0 : metrics.keyCapWidth * kbStyle.nextKeyHitExpansion
-			let pressedKeys = Set(touchTargets.values)
 			ZStack(alignment: .topLeading) {
 				Rectangle()
 					.fill(.clear)
@@ -75,7 +74,7 @@ public struct KeyboardView: View {
 						let isNext = def == assistKey
 						let currentPadding = isNext ? assistExpansion : 0
 						let rect = metrics.rect(forColumn: x, row: y)
-						KeyCapView(definition: def, isPressed: pressedKeys.contains(def))
+						KeyCapView(definition: def)
 							.padding(currentPadding / 2)
 							.frame(width: rect.width + currentPadding, height: rect.height + currentPadding)
 							.font(kbStyle.keyFont.font(size: metrics.keyCapWidth * 0.5))
@@ -96,7 +95,8 @@ public struct KeyboardView: View {
 					}
 				}
 
-				previews(metrics: metrics)
+				KeyboardTouchOverlay(touches: touches, metrics: metrics)
+					.zIndex(200)
 			}
 			.coordinateSpace(name: Self.space)
 			.padding(.top, 12)
@@ -111,7 +111,6 @@ public struct KeyboardView: View {
 		.onKeyPress { key in
 			sendKey(.init(keyPress: key))
 		}
-		.sensoryFeedback(trigger: keyChangeHaptic) { _, _ in kbStyle.enableHaptics ? .selection : nil }
 	}
 
 	// The keyboard-space drag each keycap starts: retarget to whatever key is
@@ -120,17 +119,10 @@ public struct KeyboardView: View {
 	private func keyDrag(from origin: KeyDefinition, metrics: KeyboardMetrics, assistKey: KeyDefinition?, assistExpansion: CGFloat) -> some Gesture {
 		DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.space))
 			.onChanged { value in
-				let target = metrics.key(at: value.location, assistKey: assistKey, assistExpansion: assistExpansion)
-				guard touchTargets[origin.id] != target else { return }
-				if let target {
-					touchTargets[origin.id] = target
-					keyChangeHaptic += 1
-				} else {
-					touchTargets.removeValue(forKey: origin.id)
-				}
+				touches.update(origin: origin, target: metrics.key(at: value.location, assistKey: assistKey, assistExpansion: assistExpansion))
 			}
 			.onEnded { value in
-				touchTargets.removeValue(forKey: origin.id)
+				touches.end(origin: origin)
 				if let target = metrics.key(at: value.location, assistKey: assistKey, assistExpansion: assistExpansion) {
 					commit(target)
 				}
@@ -149,25 +141,6 @@ public struct KeyboardView: View {
 		}
 	}
 
-	// A preview bubble above each touched letter key (special keys don't
-	// preview, matching the system keyboard).
-	@ViewBuilder
-	private func previews(metrics: KeyboardMetrics) -> some View {
-		let width = metrics.keyCapWidth * 1.6
-		let height = metrics.keyCapHeight * 1.15
-		ForEach(touchTargets.keys.sorted(), id: \.self) { originID in
-			if let target = touchTargets[originID], target.type == .letter, let text = target.string,
-			   let rect = metrics.rect(for: target) {
-				KeyPreviewBubble(text: text)
-					.font(kbStyle.keyFont.font(size: metrics.keyCapWidth * 0.66))
-					.frame(width: width, height: height)
-					.position(x: min(max(rect.midX, metrics.bounds.minX + width / 2), metrics.bounds.maxX - width / 2),
-					          y: rect.minY - height / 2 - 4)
-					.zIndex(200)
-					.allowsHitTesting(false)
-			}
-		}
-	}
 }
 
 #Preview {
