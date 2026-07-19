@@ -14,9 +14,22 @@ import SwiftUI
 #endif
 
 @Observable @MainActor final class KeyboardTouchModel {
+	/// A finger's accumulated glide path: every sample point, plus the letter keys
+	/// traversed with consecutive repeats collapsed. `isGliding` once it has
+	/// crossed into a second letter — from then on the touch is a glide (trail,
+	/// no bubble) and won't commit a key on release.
+	struct GlideCapture {
+		var points: [CGPoint] = []
+		var letters: [String] = []
+		var isGliding: Bool { letters.count > 1 }
+	}
+
 	// One entry per finger currently down, keyed by the key it first touched;
 	// the value is the key now under that finger.
 	private(set) var targets: [String: KeyDefinition] = [:]
+	// Glide paths for fingers that started on a letter key (only while a glide
+	// handler is installed), keyed like `targets`.
+	private(set) var glides: [String: GlideCapture] = [:]
 	// Keys whose finger just lifted, kept visible briefly: a fast tap is shorter
 	// than the bubble's render latency, so without this the preview never shows.
 	private(set) var lingering: [String: KeyDefinition] = [:]
@@ -49,6 +62,24 @@ import SwiftUI
 		#endif
 	}
 
+	/// Record a glide sample: the raw point always, the key's letter when the
+	/// finger is over a fresh letter key. Called only while glide is enabled and
+	/// the touch began on a letter key.
+	func glideSample(origin: KeyDefinition, point: CGPoint, over key: KeyDefinition?) {
+		var capture = glides[origin.id] ?? GlideCapture()
+		capture.points.append(point)
+		if let letter = key?.string?.uppercased(), key?.type == .letter, capture.letters.last != letter {
+			capture.letters.append(letter)
+		}
+		glides[origin.id] = capture
+	}
+
+	/// Close out a touch's glide path. The caller commits a tap only when the
+	/// returned capture never became a glide.
+	func endGlide(origin: KeyDefinition) -> GlideCapture? {
+		glides.removeValue(forKey: origin.id)
+	}
+
 	func end(origin: KeyDefinition) {
 		guard let key = targets.removeValue(forKey: origin.id) else { return }
 		lingering[origin.id] = key
@@ -70,12 +101,20 @@ struct KeyboardTouchOverlay: View {
 	var body: some View {
 		let visible = touches.visible
 		ZStack(alignment: .topLeading) {
+			// A touch that has become a glide shows the trail instead of the
+			// bubble/tint — mid-glide there is no single "current key" to preview.
 			ForEach(visible.keys.sorted(), id: \.self) { originID in
-				if let target = visible[originID], let rect = metrics.rect(for: target) {
+				if touches.glides[originID]?.isGliding != true,
+				   let target = visible[originID], let rect = metrics.rect(for: target) {
 					pressTint(over: rect)
 					if target.type == .letter, let text = target.string {
 						bubble(text, above: rect)
 					}
+				}
+			}
+			ForEach(touches.glides.keys.sorted(), id: \.self) { originID in
+				if let capture = touches.glides[originID], capture.isGliding {
+					GlideTrailView(points: capture.points, metrics: metrics)
 				}
 			}
 		}

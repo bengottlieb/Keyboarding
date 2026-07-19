@@ -21,6 +21,7 @@ public struct KeyboardView: View {
 	@Environment(\.keyboardStyle) var kbStyle
 	@Environment(\.keyboardNextKey) var nextKey
 	@Environment(\.keyboardAssistDebug) var assistDebug
+	@Environment(\.keyboardGlide) var glideHandler
 
 	// Live-touch state. Deliberately NOT read in this body — only the touch
 	// overlay observes it, so fingers going down and sliding never re-render
@@ -116,16 +117,30 @@ public struct KeyboardView: View {
 	// The keyboard-space drag each keycap starts: retarget to whatever key is
 	// under the finger as it moves, commit that key on touch-up. Keyed by the
 	// origin key so simultaneous fingers don't fight over one entry.
+	//
+	// With a glide handler installed and a letter-key origin, the same drag also
+	// records a glide path; once it traverses a second letter the touch *is* a
+	// glide — release delivers the stroke to the handler instead of committing
+	// the key under the finger. Single-key touches still tap normally.
 	private func keyDrag(from origin: KeyDefinition, metrics: KeyboardMetrics, assistKey: KeyDefinition?, assistExpansion: CGFloat) -> some Gesture {
-		DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.space))
+		let glideEligible = glideHandler != nil && origin.type == .letter
+		return DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.space))
 			.onChanged { value in
-				touches.update(origin: origin, target: metrics.key(at: value.location, assistKey: assistKey, assistExpansion: assistExpansion),
-				               click: kbStyle.enableKeySounds)
+				let target = metrics.key(at: value.location, assistKey: assistKey, assistExpansion: assistExpansion)
+				touches.update(origin: origin, target: target, click: kbStyle.enableKeySounds)
+				if glideEligible { touches.glideSample(origin: origin, point: value.location, over: target) }
 			}
 			.onEnded { value in
-				touches.end(origin: origin)
-				if let target = metrics.key(at: value.location, assistKey: assistKey, assistExpansion: assistExpansion) {
-					commit(target)
+				if let capture = touches.endGlide(origin: origin), capture.isGliding {
+					// No linger: a glide never showed a bubble, so none should flash now.
+					touches.update(origin: origin, target: nil, click: false)
+					glideHandler?(GlideStroke(points: capture.points, tracedLetters: capture.letters,
+					                          geometry: GlideGeometry(keymap: keymap, metrics: metrics)))
+				} else {
+					touches.end(origin: origin)
+					if let target = metrics.key(at: value.location, assistKey: assistKey, assistExpansion: assistExpansion) {
+						commit(target)
+					}
 				}
 			}
 	}
