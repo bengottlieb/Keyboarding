@@ -37,16 +37,24 @@ public struct KeyboardView: View {
 
 	var keyboardHorizontalMargins: CGFloat { 8 }
 
+	#if os(iOS)
+		// Size class, not UIDevice.orientation: orientation is unknown at first
+		// render (and faceUp/faceDown lie), which left iPads with mismatched rows.
+		@Environment(\.verticalSizeClass) private var verticalSizeClass
+	#endif
+
 	var keyCapHeight: CGFloat {
 		#if os(iOS)
-			if UIDevice.current.orientation.isLandscape {
-				44
-			} else {
-				54//min(keyCapWidth, 54)
-			}
+			verticalSizeClass == .compact ? 44 : 54
 		#else
 			54
 		#endif
+	}
+
+	// The frame follows the rows (top padding + rows + breathing room), so wide
+	// devices don't clip the bottom row against a hard-coded height.
+	var keyboardHeight: CGFloat {
+		keyCapHeight * CGFloat(keymap.rows.count) + 24
 	}
 
 	private var assistKey: KeyDefinition? {
@@ -78,7 +86,9 @@ public struct KeyboardView: View {
 						KeyCapView(definition: def)
 							.padding(currentPadding / 2)
 							.frame(width: rect.width + currentPadding, height: rect.height + currentPadding)
-							.font(kbStyle.keyFont.font(size: metrics.keyCapWidth * 0.5))
+							// Keys can be far wider than tall (iPad): size the glyphs from the
+							// smaller dimension so they never overflow into neighboring rows.
+							.font(kbStyle.keyFont.font(size: min(metrics.keyCapWidth, metrics.keyCapHeight) * 0.5))
 							.overlay {
 								if isNext && assistDebug {
 									RoundedRectangle(cornerRadius: kbStyle.cornerRadius)
@@ -104,7 +114,7 @@ public struct KeyboardView: View {
 			.ignoresSafeArea(edges: .leading)
 		}
 		.frame(maxWidth: .infinity)
-		.frame(height: 186)
+		.frame(height: keyboardHeight)
 		.background(kbStyle.background)
 		.focusable()
 		.onAppear { isFocused = true }
@@ -148,6 +158,9 @@ public struct KeyboardView: View {
 	private func commit(_ key: KeyDefinition) {
 		switch key.type {
 		case .dismiss:
+			// The host gets first crack at dismiss (e.g. hiding its own keyboard
+			// view); only an unhandled dismiss falls back to ending editing.
+			if sendKey(key) == .handled { return }
 			#if os(iOS)
 				UIView.resignAllFirstResponders()
 			#endif
