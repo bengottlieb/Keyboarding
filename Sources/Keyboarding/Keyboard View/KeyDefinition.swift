@@ -64,6 +64,24 @@ public struct KeyDefinition: Sendable, Hashable, Identifiable, ExpressibleByStri
 		default: nil
 		}
 	}
+
+	/// Whether this key should read as unavailable against a host's set of
+	/// available letters (see `EnvironmentValues.keyboardAvailableLetters`).
+	///
+	/// Nil means the host is not constraining anything, so nothing is
+	/// unavailable. Only letter keys ever are: dimming delete or dismiss would
+	/// suggest the user is stuck with what they have typed.
+	///
+	/// Both sides are case-folded, not just the keycap. Folding one side would
+	/// mean a host that passes lowercase dims every key — and an all-dimmed
+	/// keyboard is indistinguishable from the legitimate empty-set answer, so
+	/// the mistake would look like a feature working. The scan is over at most
+	/// an alphabet.
+	func isUnavailable(given availableLetters: Set<String>?) -> Bool {
+		guard let availableLetters, type == .letter, let string else { return false }
+		let wanted = string.uppercased()
+		return !availableLetters.contains { $0.uppercased() == wanted }
+	}
 }
 
 public extension KeyDefinition {

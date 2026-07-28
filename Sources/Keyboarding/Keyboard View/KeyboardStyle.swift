@@ -50,11 +50,15 @@ public struct KeyboardStyle: Sendable, Equatable {
 	/// of a key's width. The visible keycap is unchanged; only the touch target bleeds
 	/// over the neighbors to bias "fat finger" taps toward the expected letter.
 	public var nextKeyHitExpansion: CGFloat
+	/// How far a letter key fades when `keyboardAvailableLetters` excludes it.
+	/// One opacity rather than a second palette, so the fade reads as the same
+	/// keyboard dimmed and every theme gets it without adding colors.
+	public var unavailableKeyOpacity: CGFloat
 
 	public init(background: Color = .clear, keyFace: Color = Color.gray.opacity(0.22),
 	            keyInk: Color = .primary, specialInk: Color = .secondary, keyFont: KeyboardFont = .init(),
 	            cornerRadius: CGFloat = 6, enableHaptics: Bool = true, enableKeySounds: Bool = true,
-	            nextKeyHitExpansion: CGFloat = 0.5) {
+	            nextKeyHitExpansion: CGFloat = 0.5, unavailableKeyOpacity: CGFloat = 0.3) {
 		self.background = background
 		self.keyFace = keyFace
 		self.keyInk = keyInk
@@ -64,6 +68,7 @@ public struct KeyboardStyle: Sendable, Equatable {
 		self.enableHaptics = enableHaptics
 		self.enableKeySounds = enableKeySounds
 		self.nextKeyHitExpansion = nextKeyHitExpansion
+		self.unavailableKeyOpacity = unavailableKeyOpacity
 	}
 
 	public static let `default` = KeyboardStyle()
@@ -76,4 +81,16 @@ public extension EnvironmentValues {
 	/// Debug only: when true, the enlarged hit area of `keyboardNextKey` is drawn so
 	/// it can be seen and tuned. Production keeps the assist invisible.
 	@Entry var keyboardAssistDebug: Bool = false
+	/// The letter keys that can usefully be typed right now; every other letter
+	/// key fades to `KeyboardStyle.unavailableKeyOpacity`.
+	///
+	/// Nil means "unconstrained" — no key is dimmed — so a host that never sets
+	/// this sees the keyboard it always had. An EMPTY set is not the same thing:
+	/// it says nothing fits here, and dims every letter.
+	///
+	/// This is a HINT, not a lock. Dimmed keys still type, still glide, and keep
+	/// their hit targets: a host's notion of "available" is usually a dictionary,
+	/// and a user is entitled to type a word it doesn't know. Non-letter keys
+	/// (delete, dismiss, pencil, custom) are never dimmed.
+	@Entry var keyboardAvailableLetters: Set<String>? = nil
 }
