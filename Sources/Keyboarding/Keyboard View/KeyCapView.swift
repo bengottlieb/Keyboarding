@@ -8,9 +8,10 @@
 //  per-key drag gestures, and press feedback (tint + preview bubble) in
 //  KeyboardTouchOverlay — so a touch never re-renders a keycap.
 //
-//  `keyboardAvailableLetters` is the exception: a host that recomputes it per
-//  keystroke does re-render every cap, which is the point — the dimming has to
-//  track what was just typed.
+//  `keyboardAvailableLetters` is the exception: its provider is called here, in
+//  the cap's own body, so a host that recomputes the set per keystroke
+//  re-renders every cap — which is the point, the dimming has to track what was
+//  just typed — while the keyboard around them (and its gestures) stands still.
 //
 
 import SwiftUI
@@ -53,7 +54,10 @@ struct KeyCapView: View {
 		.accessibilityHint(isUnavailable ? Text("Unavailable") : Text(""))
 	}
 
-	private var isUnavailable: Bool { definition.isUnavailable(given: availableLetters) }
+	private var isUnavailable: Bool {
+		guard definition.type == .letter, let availableLetters else { return false }
+		return definition.isUnavailable(given: availableLetters())
+	}
 
 	private var ink: Color { definition.string == nil ? kbStyle.specialInk : kbStyle.keyInk }
 

@@ -85,16 +85,19 @@ public extension EnvironmentValues {
 	/// `keyboardNextKey` is drawn so it can be seen and tuned. Production keeps the
 	/// assist invisible.
 	@Entry var keyboardAssistDebug: Bool = false
-	/// The letter keys that can usefully be typed right now; every other letter
-	/// key fades to `KeyboardStyle.unavailableKeyOpacity`.
+	/// Asked, as each keycap renders, for the letter keys that can usefully be
+	/// typed right now; every other letter key fades to
+	/// `KeyboardStyle.unavailableKeyOpacity`. A closure, not a value: see
+	/// AvailableLettersProvider for why, and for what it has to read.
 	///
-	/// Nil means "unconstrained" — no key is dimmed — so a host that never sets
-	/// this sees the keyboard it always had. An EMPTY set is not the same thing:
+	/// Nil — or a provider returning nil — means "unconstrained": no key is
+	/// dimmed, so a host that never sets this sees the keyboard it always had.
+	/// An EMPTY set is not the same thing:
 	/// it says nothing fits here, and dims every letter.
 	///
 	/// This is a HINT, not a lock. Dimmed keys still type, still glide, and keep
 	/// their hit targets: a host's notion of "available" is usually a dictionary,
 	/// and a user is entitled to type a word it doesn't know. Non-letter keys
 	/// (delete, dismiss, pencil, custom) are never dimmed.
-	@Entry var keyboardAvailableLetters: Set<String>? = nil
+	@Entry var keyboardAvailableLetters: AvailableLettersProvider? = nil
 }
