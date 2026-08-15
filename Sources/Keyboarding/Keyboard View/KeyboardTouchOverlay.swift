@@ -56,11 +56,20 @@ import SwiftUI
 	@ObservationIgnored private var retargets: [String: Int] = [:]
 	@ObservationIgnored private var lastCommit: Date?
 
+	/// How long a finger must rest on one key before the host's long-press block
+	/// fires (see `EnvironmentValues.keyLongPress`).
+	static let longPressDuration = Duration.milliseconds(500)
+
+	@ObservationIgnored private var longPressTasks: [String: Task<Void, Never>] = [:]
+	@ObservationIgnored private var longPressed: Set<String> = []
+
 	// Live touches win over lingering ones for the same origin key.
 	var visible: [String: KeyDefinition] { lingering.merging(targets) { _, live in live } }
 
 	func update(origin: KeyDefinition, target: KeyDefinition?, click: Bool, haptic: Bool, now: Date = .now) {
-		guard targets[origin.id] != target else { return }
+		// A touch already spent on a long press is over: nothing it does before it
+		// lifts may re-light a key or click again.
+		guard !longPressed.contains(origin.id), targets[origin.id] != target else { return }
 		if let target {
 			if targets[origin.id] == nil {
 				// Click only when the finger lands (not on slide-retarget), and straight
@@ -69,14 +78,17 @@ import SwiftUI
 				downTimes[origin.id] = now
 				retargets[origin.id] = 0
 			} else {
-				// Sliding to a different key means the user is aiming: assist off.
+				// Sliding to a different key means the user is aiming: assist off, and
+				// the hold is off too — it belongs to the key the finger landed on.
 				retargets[origin.id, default: 0] += 1
+				cancelLongPress(origin: origin)
 			}
 			// Same reasoning as the click: from the callback, not from a render.
 			if haptic { Self.playHaptic() }
 			targets[origin.id] = target
 		} else {
 			// Slid off the keyboard: a deliberate cancel, no linger.
+			cancelLongPress(origin: origin)
 			targets.removeValue(forKey: origin.id)
 		}
 	}
@@ -89,6 +101,35 @@ import SwiftUI
 		      let down = downTimes[origin.id], now.timeIntervalSince(down) < Self.deliberatePress,
 		      retargets[origin.id, default: 0] == 0 else { return false }
 		return true
+	}
+
+	// MARK: Long press
+
+	/// Start this finger's long-press clock. `action` runs only if the finger is
+	/// still resting on the key it landed on; returning true spends the touch, so
+	/// the key never commits and its press feedback ends there.
+	func armLongPress(origin: KeyDefinition, action: @escaping @MainActor (KeyDefinition) -> Bool) {
+		// A finger that has already slid somewhere is aiming, and sliding back does
+		// not re-arm: the hold belongs to a finger that never left its key.
+		guard longPressTasks[origin.id] == nil, retargets[origin.id, default: 0] == 0 else { return }
+		longPressTasks[origin.id] = Task { @MainActor [weak self] in
+			try? await Task.sleep(for: Self.longPressDuration)
+			guard !Task.isCancelled, let self, targets[origin.id] == origin, action(origin) else { return }
+			// Drop the press feedback before marking the touch spent — a spent touch
+			// is ignored by `update`, tint and all.
+			update(origin: origin, target: nil, click: false, haptic: false)
+			longPressed.insert(origin.id)
+		}
+	}
+
+	/// Stop this finger's long-press clock — it moved on, or lifted.
+	func cancelLongPress(origin: KeyDefinition) {
+		longPressTasks.removeValue(forKey: origin.id)?.cancel()
+	}
+
+	/// Whether this touch was already spent on a long press, clearing the flag.
+	func consumedLongPress(origin: KeyDefinition) -> Bool {
+		longPressed.remove(origin.id) != nil
 	}
 
 	/// Close out a committed press: starts the burst clock the next press is
@@ -142,6 +183,7 @@ import SwiftUI
 	}
 
 	func end(origin: KeyDefinition, now: Date = .now) {
+		cancelLongPress(origin: origin)
 		guard let key = targets.removeValue(forKey: origin.id) else { return }
 		// A touch this long has certainly had a frame to draw the preview, so
 		// releasing hides it at once — the way the original keyboard did. Lingering

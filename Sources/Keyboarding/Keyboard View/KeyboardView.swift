@@ -28,6 +28,8 @@ public struct KeyboardView: View {
 	// Read but never called during `body` — see NextKeyProvider.
 	@Environment(\.keyboardNextKey) var nextKey
 	@Environment(\.keyboardGlide) var glideHandler
+	// Read but never called during `body` — see KeyLongPressHandler.
+	@Environment(\.keyLongPress) var keyLongPress
 
 	// Live-touch state. Deliberately NOT read in this body — only the touch
 	// overlay observes it, so fingers going down and sliding never re-render
@@ -119,15 +121,25 @@ public struct KeyboardView: View {
 	// records a glide path; once it traverses a second letter the touch *is* a
 	// glide — release delivers the stroke to the handler instead of committing
 	// the key under the finger. Single-key touches still tap normally.
+	//
+	// Resting on the key the finger landed on runs the host's long-press block
+	// (if it claims that key), which spends the touch: no key commits on release.
 	private func keyDrag(from origin: KeyDefinition, metrics: KeyboardMetrics) -> some Gesture {
 		let glideEligible = glideHandler != nil && origin.type == .letter
 		return DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.space))
 			.onChanged { value in
 				let target = metrics.key(at: value.location)
 				touches.update(origin: origin, target: target, click: kbStyle.enableKeySounds, haptic: kbStyle.enableHaptics)
+				if let keyLongPress, target == origin { touches.armLongPress(origin: origin) { keyLongPress($0) } }
 				if glideEligible { touches.glideSample(origin: origin, point: value.location, over: target) }
 			}
 			.onEnded { value in
+				// A hold that ran the host's block already spent this touch.
+				if touches.consumedLongPress(origin: origin) {
+					_ = touches.endGlide(origin: origin)
+					touches.end(origin: origin)
+					return
+				}
 				if let capture = touches.endGlide(origin: origin), capture.isGliding {
 					// No linger: a glide never showed a bubble, so none should flash now.
 					touches.update(origin: origin, target: nil, click: false, haptic: false)
