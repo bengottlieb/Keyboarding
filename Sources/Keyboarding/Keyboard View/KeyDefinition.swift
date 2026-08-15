@@ -11,9 +11,23 @@ public struct KeyDefinition: Sendable, Hashable, Identifiable, ExpressibleByStri
 	public let string: String?
 	public let type: KeyType
 	public let keyPress: KeyPress?
-	
+	/// How wide this key is, as a multiple of the keyboard's unit key width. A
+	/// letter is 1; the function keys flanking a row take more, so the letters
+	/// between them land on the same columns as the system keyboard.
+	///
+	/// Deliberately outside `==` and `hash`: a key is still the same key at a
+	/// different width, and the touch model keys off `id`.
+	public var width: CGFloat = 1
+
 	public var id: String { string ?? type.id }
-	
+
+	/// This key at a different width (see `width`).
+	public func width(_ width: CGFloat) -> Self {
+		var copy = self
+		copy.width = width
+		return copy
+	}
+
 	public static func ==(lhs: Self, rhs: Self) -> Bool {
 		lhs.type == rhs.type && lhs.string == rhs.string
 	}
@@ -86,7 +100,10 @@ public struct KeyDefinition: Sendable, Hashable, Identifiable, ExpressibleByStri
 
 public extension KeyDefinition {
 	enum KeyType: Sendable, Hashable {
-		case letter, delete, dismiss, tab, enter, space, navigation, pencil, custom(id: String, imageName: String, action: @Sendable () -> Void)
+		/// `blank` is a spacer, not a key: it draws nothing and does nothing. Use it
+		/// to hold a row's shoulder open when a host supplies no function key there,
+		/// so the letters stay on their usual columns either way.
+		case letter, delete, dismiss, tab, enter, space, navigation, pencil, blank, custom(id: String, imageName: String, action: @Sendable () -> Void)
 		var imageName: String? {
 			switch self {
 			case .dismiss: "keyboard.chevron.compact.down"
@@ -116,6 +133,7 @@ public extension KeyDefinition {
 			case .space: "space"
 			case .navigation: "navigation"
 			case .pencil: "pencil"
+			case .blank: "blank"
 			case .custom(_, let id, _): id
 			}
 		}

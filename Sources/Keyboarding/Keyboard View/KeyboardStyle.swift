@@ -46,9 +46,10 @@ public struct KeyboardStyle: Sendable, Equatable {
 	/// touch-down (like the system keyboard), not at commit — the sound is the
 	/// strongest "the key registered" cue, so it must not wait for touch-up.
 	public var enableKeySounds: Bool
-	/// How much the assisted (`keyboardNextKey`) key's hit area grows, as a fraction
-	/// of a key's width. The visible keycap is unchanged; only the touch target bleeds
-	/// over the neighbors to bias "fat finger" taps toward the expected letter.
+	/// How far from the assisted (`keyboardNextKey`) key a near-miss is still taken
+	/// for it, as a fraction of a key's width. Nothing about the keyboard changes
+	/// while typing: the substitution happens once, at commit, and only for a press
+	/// that qualifies as a fast-burst slip (see `KeyboardTouchModel.allowsAssist`).
 	public var nextKeyHitExpansion: CGFloat
 	/// How far a letter key fades when `keyboardAvailableLetters` excludes it.
 	/// One opacity rather than a second palette, so the fade reads as the same
@@ -76,10 +77,13 @@ public struct KeyboardStyle: Sendable, Equatable {
 
 public extension EnvironmentValues {
 	@Entry var keyboardStyle: KeyboardStyle = .default
-	/// The letter whose key should get an enlarged hit target (typing assist), or nil.
-	@Entry var keyboardNextKey: String? = nil
-	/// Debug only: when true, the enlarged hit area of `keyboardNextKey` is drawn so
-	/// it can be seen and tuned. Production keeps the assist invisible.
+	/// Asked, at commit time, for the letter typing assist should correct toward —
+	/// nil (or a provider returning nil) turns the assist off. A closure, not a
+	/// value: see NextKeyProvider for why.
+	@Entry var keyboardNextKey: NextKeyProvider? = nil
+	/// Debug only: when true, the region where a near-miss is corrected toward
+	/// `keyboardNextKey` is drawn so it can be seen and tuned. Production keeps the
+	/// assist invisible.
 	@Entry var keyboardAssistDebug: Bool = false
 	/// The letter keys that can usefully be typed right now; every other letter
 	/// key fades to `KeyboardStyle.unavailableKeyOpacity`.

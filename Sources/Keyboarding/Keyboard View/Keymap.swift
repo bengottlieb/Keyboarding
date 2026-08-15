@@ -7,13 +7,21 @@
 
 import SwiftUI
 
-public struct Keymap: Sendable {
+// Equatable so a host rebuilding the same keymap on every render doesn't
+// invalidate the keyboard — see KeyboardView's note on per-keystroke rebuilds.
+public struct Keymap: Sendable, Equatable {
 	public var rows: [[KeyDefinition]]
 	public init(rows: [[KeyDefinition]]) {
 		self.rows = rows
 	}
-	public var widestRow: Int {
-		rows.map { $0.count }.max() ?? 0
+	/// Width of the widest row in key units (a letter key is 1), which sets the
+	/// unit width every row is measured in.
+	public var widestRowUnits: CGFloat {
+		rows.map { units(inRow: $0) }.max() ?? 0
+	}
+
+	func units(inRow row: [KeyDefinition]) -> CGFloat {
+		row.reduce(0) { $0 + $1.width }
 	}
 }
 

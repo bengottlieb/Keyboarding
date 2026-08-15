@@ -21,6 +21,15 @@ struct KeyCapView: View {
 	@Environment(\.keyboardAvailableLetters) var availableLetters
 
 	var body: some View {
+		if definition.type == .blank {
+			// A spacer holding a row's shoulder open: no face, no glyph, nothing to read.
+			Color.clear
+		} else {
+			keyCap
+		}
+	}
+
+	private var keyCap: some View {
 		ZStack {
 			label
 				.offset(y: 2)

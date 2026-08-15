@@ -38,21 +38,60 @@ import SwiftUI
 	private var lingerTasks: [String: Task<Void, Never>] = [:]
 	private let lingerDuration = Duration.milliseconds(120)
 
+	/// A press held longer than this is deliberate, and is never autocorrected.
+	static let deliberatePress: TimeInterval = 0.75
+	/// Typing assist only applies inside a fast burst. Pause longer than this to
+	/// think and the key you pressed is the key you meant — the guard that keeps
+	/// assist from fighting a considered guess.
+	static let burstInterval: TimeInterval = 0.3
+
+	// Assist bookkeeping, deliberately unobserved: when each finger landed, how
+	// often it retargeted, and when a key last committed. Nothing renders from
+	// these, and making them observable would redraw the overlay mid-touch.
+	@ObservationIgnored private var downTimes: [String: Date] = [:]
+	@ObservationIgnored private var retargets: [String: Int] = [:]
+	@ObservationIgnored private var lastCommit: Date?
+
 	// Live touches win over lingering ones for the same origin key.
 	var visible: [String: KeyDefinition] { lingering.merging(targets) { _, live in live } }
 
-	func update(origin: KeyDefinition, target: KeyDefinition?, click: Bool) {
+	func update(origin: KeyDefinition, target: KeyDefinition?, click: Bool, now: Date = .now) {
 		guard targets[origin.id] != target else { return }
 		if let target {
-			// Click only when the finger lands (not on slide-retarget), and straight
-			// from the gesture callback — waiting for a render would read as lag.
-			if click, targets[origin.id] == nil { Self.playClick() }
+			if targets[origin.id] == nil {
+				// Click only when the finger lands (not on slide-retarget), and straight
+				// from the gesture callback — waiting for a render would read as lag.
+				if click { Self.playClick() }
+				downTimes[origin.id] = now
+				retargets[origin.id] = 0
+			} else {
+				// Sliding to a different key means the user is aiming: assist off.
+				retargets[origin.id, default: 0] += 1
+			}
 			targets[origin.id] = target
 			hapticPulse += 1
 		} else {
 			// Slid off the keyboard: a deliberate cancel, no linger.
 			targets.removeValue(forKey: origin.id)
 		}
+	}
+
+	/// Whether this finger's press may be autocorrected, using the rules the
+	/// original Crosswords keyboard used: it landed during a fast typing burst,
+	/// wasn't held, and never slid to another key.
+	func allowsAssist(origin: KeyDefinition, now: Date = .now) -> Bool {
+		guard let lastCommit, now.timeIntervalSince(lastCommit) < Self.burstInterval,
+		      let down = downTimes[origin.id], now.timeIntervalSince(down) < Self.deliberatePress,
+		      retargets[origin.id, default: 0] == 0 else { return false }
+		return true
+	}
+
+	/// Close out a committed press: starts the burst clock the next press is
+	/// measured against.
+	func recordCommit(origin: KeyDefinition, now: Date = .now) {
+		lastCommit = now
+		downTimes.removeValue(forKey: origin.id)
+		retargets.removeValue(forKey: origin.id)
 	}
 
 	// The system keyboard "Tock", same sound at the same moment as a hardware keycap.
@@ -104,8 +143,9 @@ struct KeyboardTouchOverlay: View {
 			// A touch that has become a glide shows the trail instead of the
 			// bubble/tint — mid-glide there is no single "current key" to preview.
 			ForEach(visible.keys.sorted(), id: \.self) { originID in
+				// A spacer isn't a key: sliding over one shows nothing.
 				if touches.glides[originID]?.isGliding != true,
-				   let target = visible[originID], let rect = metrics.rect(for: target) {
+				   let target = visible[originID], target.type != .blank, let rect = metrics.rect(for: target) {
 					pressTint(over: rect)
 					if target.type == .letter, let text = target.string {
 						bubble(text, above: rect)
