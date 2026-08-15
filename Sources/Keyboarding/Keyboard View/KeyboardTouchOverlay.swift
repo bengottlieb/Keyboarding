@@ -176,9 +176,12 @@ struct KeyboardTouchOverlay: View {
 				// A spacer isn't a key: sliding over one shows nothing.
 				if touches.glides[originID]?.isGliding != true,
 				   let target = visible[originID], target.type != .blank, let rect = metrics.rect(for: target) {
-					pressTint(over: rect)
 					if target.type == .letter, let text = target.string {
-						bubble(text, above: rect)
+						preview(text, over: rect)
+					} else {
+						// Delete, dismiss and friends get no popup — the tint is their
+						// only feedback, so it has to stay.
+						pressTint(over: rect)
 					}
 				}
 			}
@@ -199,13 +202,58 @@ struct KeyboardTouchOverlay: View {
 			.position(x: rect.midX, y: rect.midY)
 	}
 
-	private func bubble(_ text: String, above rect: CGRect) -> some View {
-		let width = metrics.keyCapWidth * 1.6
+	@ViewBuilder
+	private func preview(_ text: String, over rect: CGRect) -> some View {
+		switch kbStyle.keyPreview {
+		case .stemmed:
+			// The stem is opaque and covers the keycap, so the key lifts rather than
+			// sitting there tinted under a floating box — no separate tint wanted.
+			stemmedPreview(text, over: rect)
+		case .floating:
+			pressTint(over: rect)
+			floatingPreview(text, above: rect)
+		}
+	}
+
+	/// Balloon AND the key it sits on as one shape, so the stem meets the keycap
+	/// with no seam and hides it.
+	private func stemmedPreview(_ text: String, over rect: CGRect) -> some View {
+		let width = min(metrics.keyCapWidth * 1.6, metrics.bounds.width)
+		let balloonHeight = metrics.keyCapHeight * 1.15
+		// The stem stands in for the keycap's face, which KeyCapView insets by this
+		// much inside the key's frame — match it, or the stem reads as a fatter key
+		// than the ones around it.
+		let capInset: CGFloat = 2
+		let stem = CGSize(width: rect.width - capInset * 2, height: rect.height - capInset)
+		let frame = CGRect(x: clampedX(over: rect, width: width),
+		                   y: rect.maxY - capInset - balloonHeight - stem.height,
+		                   width: width, height: balloonHeight + stem.height)
+		// An edge key's balloon slides inward to stay on screen, so the stem is
+		// placed from the key's real position rather than assumed centered.
+		return KeyPreviewBubble(text: text, keyWidth: stem.width, keyHeight: stem.height,
+		                        stemCenterX: rect.midX - frame.minX, balloonHeight: balloonHeight)
+			.font(kbStyle.keyFont.font(size: metrics.keyCapWidth * 0.66))
+			.frame(width: frame.width, height: frame.height)
+			.position(x: frame.midX, y: frame.midY)
+	}
+
+	/// Detached rounded rectangle sitting above the key, which keeps its cap.
+	private func floatingPreview(_ text: String, above rect: CGRect) -> some View {
+		let width = min(metrics.keyCapWidth * 1.6, metrics.bounds.width)
 		let height = metrics.keyCapHeight * 1.15
-		return KeyPreviewBubble(text: text)
+		let minX = clampedX(over: rect, width: width)
+		// Balloon height for both the frame and the text box: with no stem the
+		// letter centers in the whole popup.
+		return KeyPreviewBubble(text: text, keyWidth: rect.width, keyHeight: 0,
+		                        stemCenterX: rect.midX - minX, balloonHeight: height)
 			.font(kbStyle.keyFont.font(size: metrics.keyCapWidth * 0.66))
 			.frame(width: width, height: height)
-			.position(x: min(max(rect.midX, metrics.bounds.minX + width / 2), metrics.bounds.maxX - width / 2),
-			          y: rect.minY - height / 2 - 4)
+			.position(x: minX + width / 2, y: rect.minY - height / 2 - 4)
+	}
+
+	/// Keeps a popup inside the keyboard's bounds; the key it points at may sit
+	/// anywhere within it.
+	private func clampedX(over rect: CGRect, width: CGFloat) -> CGFloat {
+		min(max(rect.midX - width / 2, metrics.bounds.minX), metrics.bounds.maxX - width)
 	}
 }

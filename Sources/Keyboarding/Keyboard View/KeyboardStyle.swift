@@ -27,6 +27,17 @@ public struct KeyboardFont: Sendable, Equatable {
 	}
 }
 
+/// How the preview above a pressed key is drawn.
+public enum KeyPreviewStyle: Sendable, Equatable {
+	/// A balloon whose shoulders sweep down into a stem the width of the key,
+	/// ending over the keycap and hiding it — the system keyboard's shape, and
+	/// the original Crosswords keyboard's. The key reads as lifting off.
+	case stemmed
+	/// A detached rounded rectangle floating above the key, which stays visible
+	/// and tinted underneath.
+	case floating
+}
+
 public struct KeyboardStyle: Sendable, Equatable {
 	/// Backdrop behind the keys.
 	public var background: Color
@@ -51,6 +62,8 @@ public struct KeyboardStyle: Sendable, Equatable {
 	/// while typing: the substitution happens once, at commit, and only for a press
 	/// that qualifies as a fast-burst slip (see `KeyboardTouchModel.allowsAssist`).
 	public var nextKeyHitExpansion: CGFloat
+	/// Shape of the preview shown above a pressed letter key.
+	public var keyPreview: KeyPreviewStyle
 	/// How far a letter key fades when `keyboardAvailableLetters` excludes it.
 	/// One opacity rather than a second palette, so the fade reads as the same
 	/// keyboard dimmed and every theme gets it without adding colors.
@@ -59,7 +72,8 @@ public struct KeyboardStyle: Sendable, Equatable {
 	public init(background: Color = .clear, keyFace: Color = Color.gray.opacity(0.22),
 	            keyInk: Color = .primary, specialInk: Color = .secondary, keyFont: KeyboardFont = .init(),
 	            cornerRadius: CGFloat = 6, enableHaptics: Bool = true, enableKeySounds: Bool = true,
-	            nextKeyHitExpansion: CGFloat = 0.5, unavailableKeyOpacity: CGFloat = 0.3) {
+	            nextKeyHitExpansion: CGFloat = 0.5, keyPreview: KeyPreviewStyle = .stemmed,
+	            unavailableKeyOpacity: CGFloat = 0.3) {
 		self.background = background
 		self.keyFace = keyFace
 		self.keyInk = keyInk
@@ -69,6 +83,7 @@ public struct KeyboardStyle: Sendable, Equatable {
 		self.enableHaptics = enableHaptics
 		self.enableKeySounds = enableKeySounds
 		self.nextKeyHitExpansion = nextKeyHitExpansion
+		self.keyPreview = keyPreview
 		self.unavailableKeyOpacity = unavailableKeyOpacity
 	}
 
