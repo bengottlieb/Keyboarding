@@ -57,7 +57,7 @@ struct TypingAssistTests {
 	private func model(down: Date, lastCommit: Date?) -> KeyboardTouchModel {
 		let touches = KeyboardTouchModel()
 		if let lastCommit { touches.recordCommit(origin: "Q", now: lastCommit) }
-		touches.update(origin: "R", target: "R", click: false, now: down)
+		touches.update(origin: "R", target: "R", click: false, haptic: false, now: down)
 		return touches
 	}
 
@@ -93,7 +93,7 @@ struct TypingAssistTests {
 	@Test func slidingToAnotherKeyDisqualifies() throws {
 		let now = Date()
 		let touches = model(down: now.addingTimeInterval(-0.05), lastCommit: now.addingTimeInterval(-0.1))
-		touches.update(origin: "R", target: "T", click: false, now: now)
+		touches.update(origin: "R", target: "T", click: false, haptic: false, now: now)
 		#expect(!touches.allowsAssist(origin: "R", now: now))
 	}
 

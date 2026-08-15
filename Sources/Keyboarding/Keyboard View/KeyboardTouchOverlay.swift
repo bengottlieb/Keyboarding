@@ -30,13 +30,17 @@ import SwiftUI
 	// Glide paths for fingers that started on a letter key (only while a glide
 	// handler is installed), keyed like `targets`.
 	private(set) var glides: [String: GlideCapture] = [:]
-	// Keys whose finger just lifted, kept visible briefly: a fast tap is shorter
-	// than the bubble's render latency, so without this the preview never shows.
+	// Keys whose finger lifted before the preview could be drawn, held just long
+	// enough to be seen. A press long enough to have rendered is not in here — it
+	// goes the moment the finger does (see `end`).
 	private(set) var lingering: [String: KeyDefinition] = [:]
-	private(set) var hapticPulse = 0
 
 	private var lingerTasks: [String: Task<Void, Never>] = [:]
-	private let lingerDuration = Duration.milliseconds(120)
+	/// Matches the original keyboard's minimum pop time.
+	private let lingerDuration = Duration.milliseconds(100)
+	/// How long a touch must last before its preview is assumed to have reached
+	/// the screen. Anything longer hides the moment the finger lifts.
+	private static let renderedAfter: TimeInterval = 0.05
 
 	/// A press held longer than this is deliberate, and is never autocorrected.
 	static let deliberatePress: TimeInterval = 0.75
@@ -55,7 +59,7 @@ import SwiftUI
 	// Live touches win over lingering ones for the same origin key.
 	var visible: [String: KeyDefinition] { lingering.merging(targets) { _, live in live } }
 
-	func update(origin: KeyDefinition, target: KeyDefinition?, click: Bool, now: Date = .now) {
+	func update(origin: KeyDefinition, target: KeyDefinition?, click: Bool, haptic: Bool, now: Date = .now) {
 		guard targets[origin.id] != target else { return }
 		if let target {
 			if targets[origin.id] == nil {
@@ -68,8 +72,9 @@ import SwiftUI
 				// Sliding to a different key means the user is aiming: assist off.
 				retargets[origin.id, default: 0] += 1
 			}
+			// Same reasoning as the click: from the callback, not from a render.
+			if haptic { Self.playHaptic() }
 			targets[origin.id] = target
-			hapticPulse += 1
 		} else {
 			// Slid off the keyboard: a deliberate cancel, no linger.
 			targets.removeValue(forKey: origin.id)
@@ -101,6 +106,23 @@ import SwiftUI
 		#endif
 	}
 
+	#if os(iOS)
+		// Kept alive and primed so the taptic engine is warm when a finger lands;
+		// creating one per touch adds latency to the very cue it is meant to give.
+		private static let haptics = UISelectionFeedbackGenerator()
+	#endif
+
+	/// Fired straight from the gesture callback, like the click — never from a
+	/// view update. Routing it through `.sensoryFeedback` meant the thump waited
+	/// on a SwiftUI render, and a late haptic reads worse than none at all: it is
+	/// the strongest "the key registered" cue there is.
+	private static func playHaptic() {
+		#if os(iOS)
+			haptics.selectionChanged()
+			haptics.prepare()
+		#endif
+	}
+
 	/// Record a glide sample: the raw point always, the key's letter when the
 	/// finger is over a fresh letter key. Called only while glide is enabled and
 	/// the touch began on a letter key.
@@ -119,8 +141,16 @@ import SwiftUI
 		glides.removeValue(forKey: origin.id)
 	}
 
-	func end(origin: KeyDefinition) {
+	func end(origin: KeyDefinition, now: Date = .now) {
 		guard let key = targets.removeValue(forKey: origin.id) else { return }
+		// A touch this long has certainly had a frame to draw the preview, so
+		// releasing hides it at once — the way the original keyboard did. Lingering
+		// unconditionally meant the bubble was still showing the previous key while
+		// the next one went down, which is what reads as the preview lagging behind
+		// the finger. Only a tap too brief to have rendered lingers, and then only
+		// long enough to be seen at all.
+		let held = downTimes[origin.id].map { now.timeIntervalSince($0) } ?? .greatestFiniteMagnitude
+		guard held < Self.renderedAfter else { return }
 		lingering[origin.id] = key
 		lingerTasks[origin.id]?.cancel()
 		lingerTasks[origin.id] = Task { [weak self, lingerDuration] in
@@ -158,7 +188,6 @@ struct KeyboardTouchOverlay: View {
 				}
 			}
 		}
-		.sensoryFeedback(trigger: touches.hapticPulse) { _, _ in kbStyle.enableHaptics ? .selection : nil }
 		.allowsHitTesting(false)
 	}
 

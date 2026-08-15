@@ -124,13 +124,13 @@ public struct KeyboardView: View {
 		return DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.space))
 			.onChanged { value in
 				let target = metrics.key(at: value.location)
-				touches.update(origin: origin, target: target, click: kbStyle.enableKeySounds)
+				touches.update(origin: origin, target: target, click: kbStyle.enableKeySounds, haptic: kbStyle.enableHaptics)
 				if glideEligible { touches.glideSample(origin: origin, point: value.location, over: target) }
 			}
 			.onEnded { value in
 				if let capture = touches.endGlide(origin: origin), capture.isGliding {
 					// No linger: a glide never showed a bubble, so none should flash now.
-					touches.update(origin: origin, target: nil, click: false)
+					touches.update(origin: origin, target: nil, click: false, haptic: false)
 					glideHandler?(GlideStroke(points: capture.points, tracedLetters: capture.letters,
 					                          geometry: GlideGeometry(keymap: keymap, metrics: metrics)))
 				} else {
