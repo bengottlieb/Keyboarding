@@ -49,6 +49,10 @@ struct KeyCapView: View {
 		// The whole cap, face included, so an unavailable key recedes instead of
 		// reading as a normal key someone forgot to ink in.
 		.opacity(isUnavailable ? kbStyle.unavailableKeyOpacity : 1)
+		// The embossed face draws the label twice. Collapse those visual copies into
+		// one control so VoiceOver does not expose every key twice.
+		.accessibilityElement(children: .ignore)
+		.accessibilityLabel(accessibilityLabel)
 		// A hint, not `.isNotEnabled`: the key still types, and the trait would
 		// tell VoiceOver otherwise.
 		.accessibilityHint(isUnavailable ? Text("Unavailable") : Text(""))
@@ -60,6 +64,21 @@ struct KeyCapView: View {
 	}
 
 	private var ink: Color { definition.string == nil ? kbStyle.specialInk : kbStyle.keyInk }
+
+	private var accessibilityLabel: String {
+		if let string = definition.string { return string }
+		switch definition.type {
+		case .delete: return "Delete"
+		case .dismiss: return "Dismiss keyboard"
+		case .tab: return "Tab"
+		case .enter: return "Return"
+		case .space: return "Space"
+		case .navigation: return "Navigation"
+		case .pencil: return "Pencil"
+		case .custom: return "Custom key"
+		case .letter, .blank: return ""
+		}
+	}
 
 	@ViewBuilder private var label: some View {
 		if let text = definition.string {
