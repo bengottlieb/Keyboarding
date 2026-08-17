@@ -20,6 +20,7 @@ struct KeyCapView: View {
 	let definition: KeyDefinition
 	@Environment(\.keyboardStyle) var kbStyle
 	@Environment(\.keyboardAvailableLetters) var availableLetters
+	@Environment(\.keyboardAccessibilityValue) var accessibilityValue
 
 	var body: some View {
 		if definition.type == .blank {
@@ -53,6 +54,7 @@ struct KeyCapView: View {
 		// one control so VoiceOver does not expose every key twice.
 		.accessibilityElement(children: .ignore)
 		.accessibilityLabel(accessibilityLabel)
+		.accessibilityValue(accessibilityValue?(definition) ?? "")
 		// A hint, not `.isNotEnabled`: the key still types, and the trait would
 		// tell VoiceOver otherwise.
 		.accessibilityHint(isUnavailable ? Text("Unavailable") : Text(""))

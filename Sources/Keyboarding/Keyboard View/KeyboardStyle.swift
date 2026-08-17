@@ -115,4 +115,6 @@ public extension EnvironmentValues {
 	/// and a user is entitled to type a word it doesn't know. Non-letter keys
 	/// (delete, dismiss, pencil, custom) are never dimmed.
 	@Entry var keyboardAvailableLetters: AvailableLettersProvider? = nil
+	/// A live spoken value for stateful keys such as a pencil-mode toggle.
+	@Entry var keyboardAccessibilityValue: KeyboardAccessibilityValueProvider? = nil
 }
