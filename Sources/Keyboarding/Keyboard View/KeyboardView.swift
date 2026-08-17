@@ -85,8 +85,10 @@ public struct KeyboardView: View {
 							.font(kbStyle.keyFont.font(size: min(metrics.keyCapWidth, metrics.keyCapHeight) * 0.5))
 							.contentShape(.rect)
 							.gesture(keyDrag(from: def, metrics: metrics))
+							.allowsHitTesting(def.type != .blank)
 							.accessibilityAddTraits(.isButton)
 							.accessibilityAction { commit(def) }
+							.accessibilityHidden(def.type == .blank)
 							.offset(x: rect.minX, y: rect.minY)
 					}
 				}
