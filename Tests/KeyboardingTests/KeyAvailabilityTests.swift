@@ -38,7 +38,7 @@ struct KeyAvailabilityTests {
 	/// what a constrained letter set means.
 	@Test func nonLetterKeysNeverDim() {
 		let nothingFits: Set<String> = []
-		for key in [KeyDefinition(.delete), KeyDefinition(.dismiss), KeyDefinition(.pencil), KeyDefinition(.space)] {
+		for key in [KeyDefinition(.delete), KeyDefinition(.dismiss), KeyDefinition(.pencil), KeyDefinition(.skip), KeyDefinition(.space)] {
 			#expect(!key.isUnavailable(given: nothingFits))
 		}
 	}

@@ -103,7 +103,7 @@ public extension KeyDefinition {
 		/// `blank` is a spacer, not a key: it draws nothing and does nothing. Use it
 		/// to hold a row's shoulder open when a host supplies no function key there,
 		/// so the letters stay on their usual columns either way.
-		case letter, delete, dismiss, tab, enter, space, navigation, pencil, blank, custom(id: String, imageName: String, action: @Sendable () -> Void)
+		case letter, delete, dismiss, tab, enter, space, navigation, pencil, skip, blank, custom(id: String, imageName: String, action: @Sendable () -> Void)
 		var imageName: String? {
 			switch self {
 			case .dismiss: "keyboard.chevron.compact.down"
@@ -133,6 +133,7 @@ public extension KeyDefinition {
 			case .space: "space"
 			case .navigation: "navigation"
 			case .pencil: "pencil"
+			case .skip: "skip"
 			case .blank: "blank"
 			case .custom(_, let id, _): id
 			}

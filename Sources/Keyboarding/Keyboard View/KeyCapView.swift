@@ -77,6 +77,7 @@ struct KeyCapView: View {
 		case .space: return "Space"
 		case .navigation: return "Navigation"
 		case .pencil: return "Pencil"
+		case .skip: return "Skip"
 		case .custom: return "Custom key"
 		case .letter, .blank: return ""
 		}
@@ -85,6 +86,9 @@ struct KeyCapView: View {
 	@ViewBuilder private var label: some View {
 		if let text = definition.string {
 			Text(text)
+		} else if definition.type == .skip {
+			Text("Skip")
+				.font(.system(size: 17, weight: .regular))
 		} else if let image = definition.type.imageName {
 			Image(systemName: image)
 		}
