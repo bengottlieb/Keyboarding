@@ -46,6 +46,7 @@ struct KeyPreviewBubble: View {
 				.overlay { shape.fill(kbStyle.keyFace) }
 				.shadow(color: .black.opacity(0.25), radius: 3, y: 1)
 			Text(text)
+				.accessibilityIdentifier("Keyboarding.keyPreview.\(text)")
 				.foregroundStyle(kbStyle.keyInk)
 				.frame(height: balloonHeight)
 		}

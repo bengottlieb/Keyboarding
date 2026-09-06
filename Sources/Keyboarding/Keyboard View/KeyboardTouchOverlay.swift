@@ -52,6 +52,7 @@ import SwiftUI
 	// Assist bookkeeping, deliberately unobserved: when each finger landed, how
 	// often it retargeted, and when a key last committed. Nothing renders from
 	// these, and making them observable would redraw the overlay mid-touch.
+	@ObservationIgnored private var activeOrigins: [String: UUID] = [:]
 	@ObservationIgnored private var downTimes: [String: Date] = [:]
 	@ObservationIgnored private var retargets: [String: Int] = [:]
 	@ObservationIgnored private var lastCommit: Date?
@@ -66,7 +67,13 @@ import SwiftUI
 	// Live touches win over lingering ones for the same origin key.
 	var visible: [String: KeyDefinition] { lingering.merging(targets) { _, live in live } }
 
-	func update(origin: KeyDefinition, target: KeyDefinition?, click: Bool, haptic: Bool, now: Date = .now) {
+	func update(origin: KeyDefinition, target: KeyDefinition?, click: Bool, haptic: Bool, now: Date = .now, touchID: UUID? = nil) {
+		if activeOrigins[origin.id] == nil || (touchID != nil && activeOrigins[origin.id] != touchID) {
+			cancel(origin: origin)
+			activeOrigins[origin.id] = touchID ?? UUID()
+			lingerTasks.removeValue(forKey: origin.id)?.cancel()
+			lingering.removeValue(forKey: origin.id)
+		}
 		// A touch already spent on a long press is over: nothing it does before it
 		// lifts may re-light a key or click again.
 		guard !longPressed.contains(origin.id), targets[origin.id] != target else { return }
@@ -182,7 +189,45 @@ import SwiftUI
 		glides.removeValue(forKey: origin.id)
 	}
 
+	func isActive(origin: KeyDefinition) -> Bool { activeOrigins[origin.id] != nil }
+	func isActive(origin: KeyDefinition, touchID: UUID) -> Bool { activeOrigins[origin.id] == touchID }
+
+	/// GestureState resets on cancellation as well as release. A normal release
+	/// already ended its touch and may retain a deliberately brief preview.
+	func cancelIfActive(origin: KeyDefinition, touchID: UUID) {
+		guard activeOrigins[origin.id] == touchID else { return }
+		cancel(origin: origin)
+	}
+
+	func cancel(origin: KeyDefinition) {
+		activeOrigins.removeValue(forKey: origin.id)
+		cancelLongPress(origin: origin)
+		longPressed.remove(origin.id)
+		lingerTasks.removeValue(forKey: origin.id)?.cancel()
+		targets.removeValue(forKey: origin.id)
+		lingering.removeValue(forKey: origin.id)
+		glides.removeValue(forKey: origin.id)
+		downTimes.removeValue(forKey: origin.id)
+		retargets.removeValue(forKey: origin.id)
+	}
+
+	func cancelAll() {
+		longPressTasks.values.forEach { $0.cancel() }
+		lingerTasks.values.forEach { $0.cancel() }
+		longPressTasks.removeAll()
+		lingerTasks.removeAll()
+		activeOrigins.removeAll()
+		longPressed.removeAll()
+		targets.removeAll()
+		lingering.removeAll()
+		glides.removeAll()
+		downTimes.removeAll()
+		retargets.removeAll()
+		lastCommit = nil
+	}
+
 	func end(origin: KeyDefinition, now: Date = .now) {
+		activeOrigins.removeValue(forKey: origin.id)
 		cancelLongPress(origin: origin)
 		guard let key = targets.removeValue(forKey: origin.id) else { return }
 		// A touch this long has certainly had a frame to draw the preview, so

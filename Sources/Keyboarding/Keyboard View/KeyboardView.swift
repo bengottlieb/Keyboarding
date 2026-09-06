@@ -24,6 +24,7 @@ public struct KeyboardView: View {
 	public var id: String { "\(keymap)" }
 	@FocusState var isFocused: Bool
 	@Environment(\.sendKey) var sendKey
+	@Environment(\.scenePhase) private var scenePhase
 	@Environment(\.keyboardStyle) var kbStyle
 	// Read but never called during `body` — see NextKeyProvider.
 	@Environment(\.keyboardNextKey) var nextKey
@@ -84,7 +85,7 @@ public struct KeyboardView: View {
 							// smaller dimension so they never overflow into neighboring rows.
 							.font(kbStyle.keyFont.font(size: min(metrics.keyCapWidth, metrics.keyCapHeight) * 0.5))
 							.contentShape(.rect)
-							.gesture(keyDrag(from: def, metrics: metrics))
+							.modifier(keyTouch(from: def, metrics: metrics))
 							.allowsHitTesting(def.type != .blank)
 							.accessibilityAddTraits(.isButton)
 							.accessibilityAction { commit(def) }
@@ -109,6 +110,10 @@ public struct KeyboardView: View {
 		.background(kbStyle.background)
 		.focusable()
 		.onAppear { isFocused = true }
+		.onDisappear { touches.cancelAll() }
+		.onChange(of: scenePhase) { _, phase in
+			if phase != .active { touches.cancelAll() }
+		}
 		.focused($isFocused)
 		.onKeyPress { key in
 			sendKey(.init(keyPress: key))
@@ -126,16 +131,15 @@ public struct KeyboardView: View {
 	//
 	// Resting on the key the finger landed on runs the host's long-press block
 	// (if it claims that key), which spends the touch: no key commits on release.
-	private func keyDrag(from origin: KeyDefinition, metrics: KeyboardMetrics) -> some Gesture {
+	private func keyTouch(from origin: KeyDefinition, metrics: KeyboardMetrics) -> KeyboardKeyTouchLifecycle {
 		let glideEligible = glideHandler != nil && origin.type == .letter
-		return DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.space))
-			.onChanged { value in
+		return KeyboardKeyTouchLifecycle(space: Self.space, onChanged: { value, touchID in
 				let target = metrics.key(at: value.location)
-				touches.update(origin: origin, target: target, click: kbStyle.enableKeySounds, haptic: kbStyle.enableHaptics)
+				touches.update(origin: origin, target: target, click: kbStyle.enableKeySounds, haptic: kbStyle.enableHaptics, touchID: touchID)
 				if let keyLongPress, target == origin { touches.armLongPress(origin: origin) { keyLongPress($0) } }
 				if glideEligible { touches.glideSample(origin: origin, point: value.location, over: target) }
-			}
-			.onEnded { value in
+			}, onEnded: { value, touchID in
+				guard touches.isActive(origin: origin, touchID: touchID) else { return }
 				// A hold that ran the host's block already spent this touch.
 				if touches.consumedLongPress(origin: origin) {
 					_ = touches.endGlide(origin: origin)
@@ -145,6 +149,7 @@ public struct KeyboardView: View {
 				if let capture = touches.endGlide(origin: origin), capture.isGliding {
 					// No linger: a glide never showed a bubble, so none should flash now.
 					touches.update(origin: origin, target: nil, click: false, haptic: false)
+					touches.end(origin: origin)
 					glideHandler?(GlideStroke(points: capture.points, tracedLetters: capture.letters,
 					                          geometry: GlideGeometry(keymap: keymap, metrics: metrics)))
 				} else {
@@ -153,7 +158,8 @@ public struct KeyboardView: View {
 						commit(assisted(target, at: value.location, origin: origin, metrics: metrics))
 					}
 				}
-			}
+			}, onReset: { touches.cancelIfActive(origin: origin, touchID: $0) },
+			   onDisappear: { touches.cancel(origin: origin) })
 	}
 
 	/// Typing assist, the whole of it: a letter key released during a fast burst,
@@ -187,6 +193,79 @@ public struct KeyboardView: View {
 		}
 	}
 
+}
+
+
+/// Each key owns its gesture lifetime so rolling multi-finger input stays
+/// independent. Unlike onEnded, GestureState also resets for a cancelled drag.
+/// Only this modifier observes that reset; touch updates do not rebuild the
+/// parent keyboard or replace the other keys' gestures.
+private struct KeyboardKeyTouchLifecycle: ViewModifier {
+	let space: String
+	let onChanged: (DragGesture.Value, UUID) -> Void
+	let onEnded: (DragGesture.Value, UUID) -> Void
+	let onDisappear: () -> Void
+	@GestureState private var touchID: KeyboardKeyTouchState?
+	@State private var lifetime = KeyboardKeyTouchLifetime()
+
+	init(space: String, onChanged: @escaping (DragGesture.Value, UUID) -> Void,
+	     onEnded: @escaping (DragGesture.Value, UUID) -> Void,
+	     onReset: @escaping @MainActor (UUID) -> Void, onDisappear: @escaping () -> Void) {
+		self.space = space
+		self.onChanged = onChanged
+		self.onEnded = onEnded
+		self.onDisappear = onDisappear
+		_touchID = GestureState(wrappedValue: nil, reset: { endedID, _ in
+			guard let ended = endedID else { return }
+			let id = ended.id
+			// A reset also occurs when a short touch never drew a SwiftUI frame,
+			// so onChange is not sufficient. Let a normal onEnded finish first;
+			// the token prevents an old reset from cancelling a newer same-key tap.
+			Task { @MainActor in
+				ended.lifetime.clear(ifMatching: id)
+				onReset(id)
+			}
+		})
+	}
+
+	func body(content: Content) -> some View {
+		content
+			.gesture(DragGesture(minimumDistance: 0, coordinateSpace: .named(space))
+				.updating($touchID) { _, state, _ in
+					if state == nil { state = KeyboardKeyTouchState(id: lifetime.begin(), lifetime: lifetime) }
+				}
+				.onChanged { value in onChanged(value, lifetime.begin()) }
+				.onEnded { value in
+					guard let id = lifetime.end() else { return }
+					onEnded(value, id)
+				})
+			.onDisappear {
+				_ = lifetime.end()
+				onDisappear()
+			}
+	}
+}
+
+private struct KeyboardKeyTouchState {
+	let id: UUID
+	let lifetime: KeyboardKeyTouchLifetime
+}
+
+@MainActor private final class KeyboardKeyTouchLifetime {
+	private(set) var id: UUID?
+	func begin() -> UUID {
+		if let id { return id }
+		let fresh = UUID()
+		id = fresh
+		return fresh
+	}
+	func end() -> UUID? {
+		defer { id = nil }
+		return id
+	}
+	func clear(ifMatching token: UUID) {
+		if id == token { id = nil }
+	}
 }
 
 #if DEBUG
