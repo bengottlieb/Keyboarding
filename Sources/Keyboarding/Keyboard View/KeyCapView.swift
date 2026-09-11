@@ -21,6 +21,7 @@ struct KeyCapView: View {
 	@Environment(\.keyboardStyle) var kbStyle
 	@Environment(\.keyboardAvailableLetters) var availableLetters
 	@Environment(\.keyboardAccessibilityValue) var accessibilityValue
+	@Environment(\.keyboardKeyImage) var keyImage
 
 	var body: some View {
 		if definition.type == .blank {
@@ -89,7 +90,7 @@ struct KeyCapView: View {
 		} else if definition.type == .skip {
 			Text("Skip")
 				.font(.system(size: 17, weight: .regular))
-		} else if let image = definition.type.imageName {
+		} else if let image = keyImage?(definition) ?? definition.type.imageName {
 			Image(systemName: image)
 		}
 	}

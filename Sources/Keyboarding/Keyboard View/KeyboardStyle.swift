@@ -117,4 +117,7 @@ public extension EnvironmentValues {
 	@Entry var keyboardAvailableLetters: AvailableLettersProvider? = nil
 	/// A live spoken value for stateful keys such as a pencil-mode toggle.
 	@Entry var keyboardAccessibilityValue: KeyboardAccessibilityValueProvider? = nil
+	/// A live glyph override for stateful keys: a pencil key that reads as a pen
+	/// while ink mode is on. Nil (or a nil answer) keeps the key's own symbol.
+	@Entry var keyboardKeyImage: KeyboardKeyImageProvider? = nil
 }
