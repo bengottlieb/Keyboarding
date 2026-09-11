@@ -133,12 +133,12 @@ public struct KeyboardView: View {
 	// (if it claims that key), which spends the touch: no key commits on release.
 	private func keyTouch(from origin: KeyDefinition, metrics: KeyboardMetrics) -> KeyboardKeyTouchLifecycle {
 		let glideEligible = glideHandler != nil && origin.type == .letter
-		return KeyboardKeyTouchLifecycle(space: Self.space, onChanged: { value, touchID in
-				let target = metrics.key(at: value.location)
+		return KeyboardKeyTouchLifecycle(space: Self.space, onChanged: { location, touchID in
+				let target = metrics.key(at: location)
 				touches.update(origin: origin, target: target, click: kbStyle.enableKeySounds, haptic: kbStyle.enableHaptics, touchID: touchID)
 				if let keyLongPress, target == origin { touches.armLongPress(origin: origin) { keyLongPress($0) } }
-				if glideEligible { touches.glideSample(origin: origin, point: value.location, over: target) }
-			}, onEnded: { value, touchID in
+				if glideEligible { touches.glideSample(origin: origin, point: location, over: target) }
+			}, onEnded: { location, touchID in
 				guard touches.isActive(origin: origin, touchID: touchID) else { return }
 				// A hold that ran the host's block already spent this touch.
 				if touches.consumedLongPress(origin: origin) {
@@ -154,8 +154,8 @@ public struct KeyboardView: View {
 					                          geometry: GlideGeometry(keymap: keymap, metrics: metrics)))
 				} else {
 					touches.end(origin: origin)
-					if let target = metrics.key(at: value.location) {
-						commit(assisted(target, at: value.location, origin: origin, metrics: metrics))
+					if let target = metrics.key(at: location) {
+						commit(assisted(target, at: location, origin: origin, metrics: metrics))
 					}
 				}
 			}, onReset: { touches.cancelIfActive(origin: origin, touchID: $0) },
@@ -197,23 +197,28 @@ public struct KeyboardView: View {
 
 
 /// Each key owns its gesture lifetime so rolling multi-finger input stays
-/// independent. Unlike onEnded, GestureState also resets for a cancelled drag.
-/// Only this modifier observes that reset; touch updates do not rebuild the
-/// parent keyboard or replace the other keys' gestures.
+/// independent. On iOS 18 and later the touch comes through a UIKit recognizer
+/// (see KeyTouchGesture — SwiftUI's drag reports touch-down 80–100 ms late on
+/// iOS 26), which announces its own cancellation. The drag remains for iOS 17
+/// and the Mac; there, unlike onEnded, GestureState also resets for a cancelled
+/// drag, and only this modifier observes that reset. Either way touch updates do
+/// not rebuild the parent keyboard or replace the other keys' gestures.
 private struct KeyboardKeyTouchLifecycle: ViewModifier {
 	let space: String
-	let onChanged: (DragGesture.Value, UUID) -> Void
-	let onEnded: (DragGesture.Value, UUID) -> Void
+	let onChanged: (CGPoint, UUID) -> Void
+	let onEnded: (CGPoint, UUID) -> Void
+	let onReset: @MainActor (UUID) -> Void
 	let onDisappear: () -> Void
 	@GestureState private var touchID: KeyboardKeyTouchState?
 	@State private var lifetime = KeyboardKeyTouchLifetime()
 
-	init(space: String, onChanged: @escaping (DragGesture.Value, UUID) -> Void,
-	     onEnded: @escaping (DragGesture.Value, UUID) -> Void,
+	init(space: String, onChanged: @escaping (CGPoint, UUID) -> Void,
+	     onEnded: @escaping (CGPoint, UUID) -> Void,
 	     onReset: @escaping @MainActor (UUID) -> Void, onDisappear: @escaping () -> Void) {
 		self.space = space
 		self.onChanged = onChanged
 		self.onEnded = onEnded
+		self.onReset = onReset
 		self.onDisappear = onDisappear
 		_touchID = GestureState(wrappedValue: nil, reset: { endedID, _ in
 			guard let ended = endedID else { return }
@@ -229,20 +234,46 @@ private struct KeyboardKeyTouchLifecycle: ViewModifier {
 	}
 
 	func body(content: Content) -> some View {
+		#if os(iOS)
+			if #available(iOS 18, *) {
+				content
+					.gesture(KeyTouchGesture(space: space,
+					                         onBegan: { onChanged($0, lifetime.begin()) },
+					                         onMoved: { onChanged($0, lifetime.begin()) },
+					                         onEnded: { location in
+					                         	guard let id = lifetime.end() else { return }
+					                         	onEnded(location, id)
+					                         },
+					                         onCancelled: {
+					                         	guard let id = lifetime.end() else { return }
+					                         	onReset(id)
+					                         }))
+					.onDisappear(perform: disappear)
+			} else {
+				dragged(content)
+			}
+		#else
+			dragged(content)
+		#endif
+	}
+
+	private func dragged(_ content: Content) -> some View {
 		content
 			.gesture(DragGesture(minimumDistance: 0, coordinateSpace: .named(space))
 				.updating($touchID) { _, state, _ in
 					if state == nil { state = KeyboardKeyTouchState(id: lifetime.begin(), lifetime: lifetime) }
 				}
-				.onChanged { value in onChanged(value, lifetime.begin()) }
+				.onChanged { value in onChanged(value.location, lifetime.begin()) }
 				.onEnded { value in
 					guard let id = lifetime.end() else { return }
-					onEnded(value, id)
+					onEnded(value.location, id)
 				})
-			.onDisappear {
-				_ = lifetime.end()
-				onDisappear()
-			}
+			.onDisappear(perform: disappear)
+	}
+
+	private func disappear() {
+		_ = lifetime.end()
+		onDisappear()
 	}
 }
 
