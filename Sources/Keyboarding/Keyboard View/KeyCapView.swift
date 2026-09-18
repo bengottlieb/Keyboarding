@@ -33,6 +33,9 @@ struct KeyCapView: View {
 	}
 
 	private var keyCap: some View {
+		// The label is centred on the face — the same frame the face fills, no
+		// padding under it to lift the glyph. The dimmed copy 2pt below is an
+		// emboss, not part of the label's height.
 		ZStack {
 			label
 				.offset(y: 2)
@@ -40,8 +43,6 @@ struct KeyCapView: View {
 			label
 		}
 		.frame(maxWidth: .infinity, maxHeight: .infinity)
-		.padding(.bottom, 10)
-		.padding(.top, 2)
 		.background {
 			RoundedRectangle(cornerRadius: kbStyle.cornerRadius)
 				.fill(kbStyle.keyFace)
