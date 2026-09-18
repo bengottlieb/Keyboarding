@@ -34,15 +34,9 @@ struct KeyCapView: View {
 
 	private var keyCap: some View {
 		// The label is centred on the face — the same frame the face fills, no
-		// padding under it to lift the glyph. The dimmed copy 2pt below is an
-		// emboss, not part of the label's height.
-		ZStack {
-			label
-				.offset(y: 2)
-				.opacity(0.25)
-			label
-		}
-		.frame(maxWidth: .infinity, maxHeight: .infinity)
+		// padding under it to lift the glyph.
+		label
+			.frame(maxWidth: .infinity, maxHeight: .infinity)
 		.background {
 			RoundedRectangle(cornerRadius: kbStyle.cornerRadius)
 				.fill(kbStyle.keyFace)
@@ -52,8 +46,7 @@ struct KeyCapView: View {
 		// The whole cap, face included, so an unavailable key recedes instead of
 		// reading as a normal key someone forgot to ink in.
 		.opacity(isUnavailable ? kbStyle.unavailableKeyOpacity : 1)
-		// The embossed face draws the label twice. Collapse those visual copies into
-		// one control so VoiceOver does not expose every key twice.
+		// One control per key, whatever the label is made of.
 		.accessibilityElement(children: .ignore)
 		.accessibilityLabel(accessibilityLabel)
 		.accessibilityValue(accessibilityValue?(definition) ?? "")
