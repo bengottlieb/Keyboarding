@@ -43,21 +43,22 @@ public struct GlideStroke: Sendable {
 /// Where each letter key's center sat when the stroke was captured, in the same
 /// coordinate space as the stroke's points.
 struct GlideGeometry: Sendable {
-	let centers: [String: CGPoint]
+	/// Every place a letter's key sits — two on a split keyboard's shared letters.
+	let centers: [String: [CGPoint]]
 	let keySize: CGSize
 
 	init(centers: [String: CGPoint], keySize: CGSize) {
-		self.centers = centers
+		self.centers = centers.mapValues { [$0] }
 		self.keySize = keySize
 	}
 
-	init(keymap: Keymap, metrics: KeyboardMetrics) {
-		var centers: [String: CGPoint] = [:]
-		for (y, row) in keymap.rows.enumerated() {
+	init(metrics: KeyboardMetrics) {
+		var centers: [String: [CGPoint]] = [:]
+		for (y, row) in metrics.rows.enumerated() {
 			for (x, key) in row.enumerated() where key.type == .letter {
 				guard let letter = key.string?.uppercased() else { continue }
 				let rect = metrics.rect(forColumn: x, row: y)
-				centers[letter] = CGPoint(x: rect.midX, y: rect.midY)
+				centers[letter, default: []].append(CGPoint(x: rect.midX, y: rect.midY))
 			}
 		}
 		self.centers = centers
@@ -68,8 +69,8 @@ struct GlideGeometry: Sendable {
 	/// the key under the point plus its immediate neighbors.
 	func letters(near point: CGPoint) -> Set<String> {
 		var result: Set<String> = []
-		for (letter, center) in centers {
-			if abs(center.x - point.x) <= keySize.width && abs(center.y - point.y) <= keySize.height {
+		for (letter, points) in centers {
+			if points.contains(where: { abs($0.x - point.x) <= keySize.width && abs($0.y - point.y) <= keySize.height }) {
 				result.insert(letter)
 			}
 		}

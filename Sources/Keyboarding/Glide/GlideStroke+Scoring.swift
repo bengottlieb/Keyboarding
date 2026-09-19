@@ -88,7 +88,10 @@ public extension GlideStroke {
 		for character in word.uppercased() {
 			if character == previous { continue }
 			previous = character
-			guard let center = geometry.centers[String(character)] else { return nil }
+			guard let centers = geometry.centers[String(character)], let first = centers.first else { return nil }
+			// A letter on both halves of a split keyboard: the copy nearer the
+			// glide so far is the one the finger would have crossed.
+			let center = path.last.map { last in centers.min { $0.distance(to: last) < $1.distance(to: last) } ?? first } ?? first
 			path.append(center)
 		}
 		return path.isEmpty ? nil : path

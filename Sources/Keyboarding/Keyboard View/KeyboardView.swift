@@ -31,6 +31,7 @@ public struct KeyboardView: View {
 	@Environment(\.keyboardGlide) var glideHandler
 	// Read but never called during `body` — see KeyLongPressHandler.
 	@Environment(\.keyLongPress) var keyLongPress
+	@Environment(\.keyboardSplit) private var splitBehavior
 
 	// Live-touch state. Deliberately NOT read in this body — only the touch
 	// overlay observes it, so fingers going down and sliding never re-render
@@ -69,17 +70,17 @@ public struct KeyboardView: View {
 	public var body: some View {
 		GeometryReader { geo in
 			let metrics = KeyboardMetrics(keymap: keymap, width: geo.size.width, keyCapHeight: keyCapHeight,
-			                              horizontalMargin: keyboardHorizontalMargins)
+			                              horizontalMargin: keyboardHorizontalMargins, split: split(in: geo))
 			ZStack(alignment: .topLeading) {
 				Rectangle()
 					.fill(.clear)
 					.frame(height: keyCapHeight * CGFloat(keymap.rows.count) + 24)
 
-				ForEach(keymap.rows.indices, id: \.self) { y in
-					ForEach(keymap.rows[y].indices, id: \.self) { x in
-						let def = keymap.rows[y][x]
+				ForEach(metrics.rows.indices, id: \.self) { y in
+					ForEach(metrics.rows[y].indices, id: \.self) { x in
+						let def = metrics.rows[y][x]
 						let rect = metrics.rect(forColumn: x, row: y)
-						KeyCapView(definition: def)
+						KeyCapView(definition: def, faceInset: metrics.faceInset)
 							.frame(width: rect.width, height: rect.height)
 							// Keys can be far wider than tall (iPad): size the glyphs from the
 							// smaller dimension so they never overflow into neighboring rows.
@@ -120,6 +121,38 @@ public struct KeyboardView: View {
 		}
 	}
 
+	/// The split to lay out around, if the display or the host asks for one.
+	private func split(in geo: GeometryProxy) -> KeyboardSplit? {
+		let keyCapWidth = keyCapHeight * kbStyle.splitKeyAspectRatio
+		switch splitBehavior {
+		case .never:
+			return nil
+		case .always:
+			let middle = geo.size.width / 2
+			return KeyboardSplit(keymap: keymap, divider: middle...middle, keyCapWidth: keyCapWidth, faceInset: kbStyle.splitKeyInset)
+		case .automatic:
+			guard let divider = Self.displayDivider(in: geo) else { return nil }
+			return KeyboardSplit(keymap: keymap, divider: divider, keyCapWidth: keyCapWidth, faceInset: kbStyle.splitKeyInset)
+		}
+	}
+
+	/// A fold running down through the keyboard — the partly opened foldable
+	/// the system keyboard splits for — as the x-range to keep clear, with the
+	/// margins the system keeps around it.
+	private static func displayDivider(in geo: GeometryProxy) -> ClosedRange<CGFloat>? {
+		#if os(iOS)
+			guard #available(iOS 27.1, *) else { return nil }
+			for region in geo.reservedRegions(kind: .division) where region.isActive {
+				let frame = region.frame
+				// Down through the rows, not along them: a fold across the keyboard
+				// would call for a different keyboard altogether, not a split.
+				guard frame.height >= frame.width, frame.maxY > 0, frame.minY < geo.size.height else { continue }
+				return (frame.minX - region.margins.leading)...(frame.maxX + region.margins.trailing)
+			}
+		#endif
+		return nil
+	}
+
 	// The keyboard-space drag each keycap starts: retarget to whatever key is
 	// under the finger as it moves, commit that key on touch-up. Keyed by the
 	// origin key so simultaneous fingers don't fight over one entry.
@@ -151,7 +184,7 @@ public struct KeyboardView: View {
 					touches.update(origin: origin, target: nil, click: false, haptic: false)
 					touches.end(origin: origin)
 					glideHandler?(GlideStroke(points: capture.points, tracedLetters: capture.letters,
-					                          geometry: GlideGeometry(keymap: keymap, metrics: metrics)))
+					                          geometry: GlideGeometry(metrics: metrics)))
 				} else {
 					touches.end(origin: origin)
 					if let target = metrics.key(at: location) {

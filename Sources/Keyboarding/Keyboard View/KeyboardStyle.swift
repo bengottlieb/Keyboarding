@@ -68,12 +68,22 @@ public struct KeyboardStyle: Sendable, Equatable {
 	/// One opacity rather than a second palette, so the fade reads as the same
 	/// keyboard dimmed and every theme gets it without adding colors.
 	public var unavailableKeyOpacity: CGFloat
+	/// Width of a split half's keys relative to their height. The system
+	/// keyboard keeps split keys near the shape of a phone's rather than
+	/// stretching them across half the display, and pushes the halves to the
+	/// edges; a touch wider than tall brings the halves within the thumbs' reach.
+	public var splitKeyAspectRatio: CGFloat
+	/// The inset of each key's face within its slot on a split half — the gap
+	/// between keys — wider than a continuous keyboard's, since a half is the
+	/// whole of what a thumb aims at and the room is there.
+	public var splitKeyInset: CGFloat
 
 	public init(background: Color = .clear, keyFace: Color = Color.gray.opacity(0.22),
 	            keyInk: Color = .primary, specialInk: Color = .secondary, keyFont: KeyboardFont = .init(),
 	            cornerRadius: CGFloat = 6, enableHaptics: Bool = true, enableKeySounds: Bool = true,
 	            nextKeyHitExpansion: CGFloat = 0.5, keyPreview: KeyPreviewStyle = .stemmed,
-	            unavailableKeyOpacity: CGFloat = 0.3) {
+	            unavailableKeyOpacity: CGFloat = 0.3, splitKeyAspectRatio: CGFloat = 1.05,
+	            splitKeyInset: CGFloat = 4) {
 		self.background = background
 		self.keyFace = keyFace
 		self.keyInk = keyInk
@@ -85,6 +95,8 @@ public struct KeyboardStyle: Sendable, Equatable {
 		self.nextKeyHitExpansion = nextKeyHitExpansion
 		self.keyPreview = keyPreview
 		self.unavailableKeyOpacity = unavailableKeyOpacity
+		self.splitKeyAspectRatio = splitKeyAspectRatio
+		self.splitKeyInset = splitKeyInset
 	}
 
 	public static let `default` = KeyboardStyle()

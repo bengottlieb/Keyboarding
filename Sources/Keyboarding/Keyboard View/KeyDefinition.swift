@@ -18,8 +18,12 @@ public struct KeyDefinition: Sendable, Hashable, Identifiable, ExpressibleByStri
 	/// Deliberately outside `==` and `hash`: a key is still the same key at a
 	/// different width, and the touch model keys off `id`.
 	public var width: CGFloat = 1
+	/// The second copy of a letter a split keyboard puts on both halves (see
+	/// KeyboardSplit): the same letter to type, but its own key to touch, so
+	/// pressing one half's copy never lights or commits the other's.
+	var isSplitTwin = false
 
-	public var id: String { string ?? type.id }
+	public var id: String { (string ?? type.id) + (isSplitTwin ? ".twin" : "") }
 
 	/// This key at a different width (see `width`).
 	public func width(_ width: CGFloat) -> Self {
@@ -28,13 +32,21 @@ public struct KeyDefinition: Sendable, Hashable, Identifiable, ExpressibleByStri
 		return copy
 	}
 
+	/// This key as the other half's copy of itself (see `isSplitTwin`).
+	func splitTwin() -> Self {
+		var copy = self
+		copy.isSplitTwin = true
+		return copy
+	}
+
 	public static func ==(lhs: Self, rhs: Self) -> Bool {
-		lhs.type == rhs.type && lhs.string == rhs.string
+		lhs.type == rhs.type && lhs.string == rhs.string && lhs.isSplitTwin == rhs.isSplitTwin
 	}
 	
 	public func hash(into hasher: inout Hasher) {
 		hasher.combine(type)
 		hasher.combine(string)
+		hasher.combine(isSplitTwin)
 	}
 	
 	public init(stringLiteral value: StringLiteralType) {

@@ -18,6 +18,8 @@ import SwiftUI
 
 struct KeyCapView: View {
 	let definition: KeyDefinition
+	/// The face's inset within the slot — the gap to the next key.
+	var faceInset: CGFloat = KeyboardMetrics.continuousFaceInset
 	@Environment(\.keyboardStyle) var kbStyle
 	@Environment(\.keyboardAvailableLetters) var availableLetters
 	@Environment(\.keyboardAccessibilityValue) var accessibilityValue
@@ -40,7 +42,7 @@ struct KeyCapView: View {
 		.background {
 			RoundedRectangle(cornerRadius: kbStyle.cornerRadius)
 				.fill(kbStyle.keyFace)
-				.padding(2)
+				.padding(faceInset)
 		}
 		.foregroundStyle(ink)
 		// The whole cap, face included, so an unavailable key recedes instead of
