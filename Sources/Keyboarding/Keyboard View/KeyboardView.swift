@@ -140,7 +140,10 @@ public struct KeyboardView: View {
 	/// the system keyboard splits for — as the x-range to keep clear, with the
 	/// margins the system keeps around it.
 	private static func displayDivider(in geo: GeometryProxy) -> ClosedRange<CGFloat>? {
-		#if os(iOS)
+		// Reserved regions arrive with the iOS 27.1 SDK (SwiftUICore 8.0.85);
+		// an older SDK builds a keyboard that never splits on its own, rather
+		// than one that does not build.
+		#if os(iOS) && canImport(SwiftUICore, _version: 8.0.85)
 			guard #available(iOS 27.1, *) else { return nil }
 			for region in geo.reservedRegions(kind: .division) where region.isActive {
 				let frame = region.frame
