@@ -112,8 +112,12 @@ public struct KeyboardView: View {
 			}
 			.coordinateSpace(name: Self.space)
 			.padding(.top, 12)
-			.ignoresSafeArea(edges: .leading)
 		}
+		// The keys span the whole width, edge to edge, in landscape as in
+		// portrait. Ignoring only the leading inset (as this once did) measured
+		// the rows in the safe width and then slid them left, leaving a strip of
+		// empty keyboard along the trailing edge of a landscape iPhone.
+		.ignoresSafeArea(.container, edges: .horizontal)
 		.frame(maxWidth: .infinity)
 		.frame(height: keyboardHeight)
 		.background(kbStyle.background)
