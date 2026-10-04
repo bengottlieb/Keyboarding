@@ -21,6 +21,9 @@ import Suite
 
 public struct KeyboardView: View {
 	var keymap: Keymap = .qwertyWithDismiss
+	/// The second page a `.pageToggle` key flips to — numbers and symbols
+	/// behind the letters, say. Nil for a single-page keyboard.
+	var alternate: Keymap?
 	public var id: String { "\(keymap)" }
 	@FocusState var isFocused: Bool
 	@Environment(\.sendKey) var sendKey
@@ -38,11 +41,16 @@ public struct KeyboardView: View {
 	// the keycaps (each keycap runs its own drag gesture, so rolling
 	// multi-finger typing tracks independently).
 	@State private var touches = KeyboardTouchModel()
+	@State private var showsAlternate = false
+
+	/// The page on screen: the alternate only while it is shown and still given.
+	var activeKeymap: Keymap { Keymap.page(keymap, alternate: alternate, showingAlternate: showsAlternate) }
 
 	private static let space = "Keyboarding.KeyboardView"
 
-	public init(keymap: Keymap? = nil) {
+	public init(keymap: Keymap? = nil, alternate: Keymap? = nil) {
 		self.keymap = keymap ?? .qwertyWithDismiss
+		self.alternate = alternate
 	}
 
 	var keyboardHorizontalMargins: CGFloat { 8 }
@@ -64,17 +72,17 @@ public struct KeyboardView: View {
 	// The frame follows the rows (top padding + rows + breathing room), so wide
 	// devices don't clip the bottom row against a hard-coded height.
 	var keyboardHeight: CGFloat {
-		keyCapHeight * CGFloat(keymap.rows.count) + 24
+		keyCapHeight * CGFloat(activeKeymap.rows.count) + 24
 	}
 
 	public var body: some View {
 		GeometryReader { geo in
-			let metrics = KeyboardMetrics(keymap: keymap, width: geo.size.width, keyCapHeight: keyCapHeight,
+			let metrics = KeyboardMetrics(keymap: activeKeymap, width: geo.size.width, keyCapHeight: keyCapHeight,
 			                              horizontalMargin: keyboardHorizontalMargins, split: split(in: geo))
 			ZStack(alignment: .topLeading) {
 				Rectangle()
 					.fill(.clear)
-					.frame(height: keyCapHeight * CGFloat(keymap.rows.count) + 24)
+					.frame(height: keyCapHeight * CGFloat(activeKeymap.rows.count) + 24)
 
 				ForEach(metrics.rows.indices, id: \.self) { y in
 					ForEach(metrics.rows[y].indices, id: \.self) { x in
@@ -129,10 +137,10 @@ public struct KeyboardView: View {
 			return nil
 		case .always:
 			let middle = geo.size.width / 2
-			return KeyboardSplit(keymap: keymap, divider: middle...middle, keyCapWidth: keyCapWidth, faceInset: kbStyle.splitKeyInset)
+			return KeyboardSplit(keymap: activeKeymap, divider: middle...middle, keyCapWidth: keyCapWidth, faceInset: kbStyle.splitKeyInset)
 		case .automatic:
 			guard let divider = Self.displayDivider(in: geo) else { return nil }
-			return KeyboardSplit(keymap: keymap, divider: divider, keyCapWidth: keyCapWidth, faceInset: kbStyle.splitKeyInset)
+			return KeyboardSplit(keymap: activeKeymap, divider: divider, keyCapWidth: keyCapWidth, faceInset: kbStyle.splitKeyInset)
 		}
 	}
 
@@ -168,7 +176,8 @@ public struct KeyboardView: View {
 	// Resting on the key the finger landed on runs the host's long-press block
 	// (if it claims that key), which spends the touch: no key commits on release.
 	private func keyTouch(from origin: KeyDefinition, metrics: KeyboardMetrics) -> KeyboardKeyTouchLifecycle {
-		let glideEligible = glideHandler != nil && origin.type == .letter
+		// Glide reads words, so not on a page of digits and symbols.
+		let glideEligible = glideHandler != nil && origin.type == .letter && !showsAlternate
 		return KeyboardKeyTouchLifecycle(space: Self.space, onChanged: { location, touchID in
 				let target = metrics.key(at: location)
 				touches.update(origin: origin, target: target, click: kbStyle.enableKeySounds, haptic: kbStyle.enableHaptics, touchID: touchID)
@@ -211,7 +220,7 @@ public struct KeyboardView: View {
 	}
 
 	private func key(forLetter letter: String) -> KeyDefinition? {
-		keymap.rows.joined().first { $0.string?.uppercased() == letter.uppercased() }
+		activeKeymap.rows.joined().first { $0.string?.uppercased() == letter.uppercased() }
 	}
 
 	private func commit(_ key: KeyDefinition) {
@@ -223,6 +232,10 @@ public struct KeyboardView: View {
 			#if os(iOS)
 				UIView.resignAllFirstResponders()
 			#endif
+
+		case .pageToggle:
+			// The keyboard's own key: the host never sees a page change.
+			showsAlternate.toggle()
 
 		default:
 			_ = sendKey(key)

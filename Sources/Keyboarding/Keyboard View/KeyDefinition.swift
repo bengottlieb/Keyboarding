@@ -116,6 +116,14 @@ public extension KeyDefinition {
 		/// to hold a row's shoulder open when a host supplies no function key there,
 		/// so the letters stay on their usual columns either way.
 		case letter, delete, dismiss, tab, enter, space, navigation, pencil, skip, blank, custom(id: String, imageName: String, action: @Sendable () -> Void)
+		/// A host's own key, shown as text (`title`) or an SF Symbol
+		/// (`systemImage`) and sent to the host like any other key, which tells
+		/// it apart by `id`.
+		case command(id: String, title: String? = nil, systemImage: String? = nil)
+		/// Switches the keyboard between its keymap and the alternate one it was
+		/// given (`KeyboardView(keymap:alternate:)`) — "123" on the letters,
+		/// "ABC" on the numbers. The keyboard handles it; the host never sees it.
+		case pageToggle(title: String, spokenLabel: String)
 		var imageName: String? {
 			switch self {
 			case .dismiss: "keyboard.chevron.compact.down"
@@ -127,6 +135,7 @@ public extension KeyDefinition {
 			case .pencil: "pencil"
 
 			case .custom(_, let imageName, _): imageName
+			case .command(_, _, let systemImage): systemImage
 			default: nil
 			}
 		}
@@ -148,6 +157,10 @@ public extension KeyDefinition {
 			case .skip: "skip"
 			case .blank: "blank"
 			case .custom(_, let id, _): id
+			case .command(let id, _, _): "command.\(id)"
+			// Each page's toggle is its own key: equal toggles would let SwiftUI
+			// keep "123" on the cap after the page has turned to the digits.
+			case .pageToggle(let title, _): "pageToggle.\(title)"
 			}
 		}
 		

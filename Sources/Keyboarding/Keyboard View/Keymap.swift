@@ -26,6 +26,15 @@ public struct Keymap: Sendable, Equatable {
 }
 
 extension Keymap {
+	/// Which page a two-page keyboard shows: the alternate only while it is
+	/// both asked for and still supplied, so a host that drops its alternate
+	/// never strands the reader on a page that no longer exists.
+	static func page(_ keymap: Keymap, alternate: Keymap?, showingAlternate: Bool) -> Keymap {
+		showingAlternate ? (alternate ?? keymap) : keymap
+	}
+}
+
+extension Keymap {
 	@MainActor public static var qwerty = Keymap(rows: [
 		[ "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P" ],
 		[ "A", "S", "D", "F", "G", "H", "J", "K", "L" ],

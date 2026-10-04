@@ -76,15 +76,27 @@ struct KeyCapView: View {
 		case .pencil: return "Pencil"
 		case .skip: return "Skip"
 		case .custom: return "Custom key"
+		case .command(let id, let title, _): return title ?? id.capitalized
+		case .pageToggle(_, let spokenLabel): return spokenLabel
 		case .letter, .blank: return ""
+		}
+	}
+
+	/// Function keys labelled with a word rather than a glyph.
+	private var textLabel: String? {
+		switch definition.type {
+		case .skip: "Skip"
+		case .command(_, let title?, _): title
+		case .pageToggle(let title, _): title
+		default: nil
 		}
 	}
 
 	@ViewBuilder private var label: some View {
 		if let text = definition.string {
 			Text(text)
-		} else if definition.type == .skip {
-			Text("Skip")
+		} else if let title = textLabel {
+			Text(title)
 				.font(.system(size: 17, weight: .regular))
 		} else if let image = keyImage?(definition) ?? definition.type.imageName {
 			Image(systemName: image)
