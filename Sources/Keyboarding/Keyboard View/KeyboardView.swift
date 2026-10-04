@@ -113,11 +113,13 @@ public struct KeyboardView: View {
 			.coordinateSpace(name: Self.space)
 			.padding(.top, 12)
 		}
-		// The keys span the whole width, edge to edge, in landscape as in
-		// portrait. Ignoring only the leading inset (as this once did) measured
-		// the rows in the safe width and then slid them left, leaving a strip of
-		// empty keyboard along the trailing edge of a landscape iPhone.
-		.ignoresSafeArea(.container, edges: .horizontal)
+		// The keys keep to the safe area, inset evenly on both sides, the way
+		// the system keyboard's do — clear of a landscape iPhone's Dynamic
+		// Island and rounded corners — while the background (a shape style, which
+		// fills into every safe-area edge) runs edge to edge and under the home
+		// indicator. A host that wants keys across an inset (a foldable's
+		// vertical bar, say) widens the keyboard's safe area with ignoresSafeArea
+		// of its own.
 		.frame(maxWidth: .infinity)
 		.frame(height: keyboardHeight)
 		.background(kbStyle.background)
