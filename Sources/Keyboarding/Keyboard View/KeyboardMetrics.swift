@@ -94,6 +94,23 @@ struct KeyboardMetrics {
 		return nil
 	}
 
+	/// Where a key takes touches: its slot, except that the first and last real key
+	/// of each run reach out to the keyboard's edge over the margin and any blank
+	/// spacer beside them — the half-key beside A and L, say — the way the system
+	/// keyboard's do. Only the outer edges: a split's divider stays nobody's.
+	func hitRect(forColumn x: Int, row y: Int) -> CGRect {
+		var rect = rect(forColumn: x, row: y)
+		let run = x < splitIndex[y] ? 0..<splitIndex[y] : splitIndex[y]..<rows[y].count
+		let keys = rows[y][run]
+		if run.lowerBound == 0, keys.firstIndex(where: { $0.type != .blank }) == x {
+			rect = CGRect(x: 0, y: rect.minY, width: rect.maxX, height: rect.height)
+		}
+		if run.upperBound == rows[y].count, keys.lastIndex(where: { $0.type != .blank }) == x {
+			rect.size.width = rowWidth + horizontalMargin * 2 - rect.minX
+		}
+		return rect
+	}
+
 	var bounds: CGRect {
 		CGRect(x: horizontalMargin, y: 0, width: rowWidth, height: CGFloat(rows.count) * keyCapHeight)
 	}
@@ -117,11 +134,17 @@ struct KeyboardMetrics {
 		// Walk the run in units so a point left of the first key lands on it and one
 		// past the last key lands on that — the same clamping a uniform row got.
 		var remaining = (point.x - start) / keyCapWidth
+		var found = keys.last ?? row.last
 		for key in keys {
-			if remaining < key.width { return key }
+			if remaining < key.width { found = key; break }
 			remaining -= key.width
 		}
-		return keys.last ?? row.last
+		// A blank spacer at the end of a run belongs to the real key beside it,
+		// as the margin does (see hitRect).
+		guard let hit = found, hit.type == .blank, let index = keys.firstIndex(of: hit) else { return found }
+		if let first = keys.firstIndex(where: { $0.type != .blank }), index < first { return keys[first] }
+		if let last = keys.lastIndex(where: { $0.type != .blank }), index > last { return keys[last] }
+		return hit
 	}
 
 	/// Typing assist, applied at commit only: swap a near-miss for the expected

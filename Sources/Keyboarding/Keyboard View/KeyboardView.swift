@@ -88,18 +88,23 @@ public struct KeyboardView: View {
 					ForEach(metrics.rows[y].indices, id: \.self) { x in
 						let def = metrics.rows[y][x]
 						let rect = metrics.rect(forColumn: x, row: y)
+						// Drawn in its slot, touched across its hit rect: a row's end keys
+						// take the margin and blank spacer beside them.
+						let hit = metrics.hitRect(forColumn: x, row: y)
 						KeyCapView(definition: def, faceInset: metrics.faceInset)
 							.frame(width: rect.width, height: rect.height)
 							// Keys can be far wider than tall (iPad): size the glyphs from the
 							// smaller dimension so they never overflow into neighboring rows.
 							.font(kbStyle.keyFont.font(size: min(metrics.keyCapWidth, metrics.keyCapHeight) * 0.5))
+							.padding(.leading, rect.minX - hit.minX)
+							.padding(.trailing, hit.maxX - rect.maxX)
 							.contentShape(.rect)
 							.modifier(keyTouch(from: def, metrics: metrics))
 							.allowsHitTesting(def.type != .blank)
 							.accessibilityAddTraits(.isButton)
 							.accessibilityAction { commit(def) }
 							.accessibilityHidden(def.type == .blank)
-							.offset(x: rect.minX, y: rect.minY)
+							.offset(x: hit.minX, y: rect.minY)
 					}
 				}
 
