@@ -33,6 +33,9 @@ struct KeyPreviewBubble: View {
 	let keyHeight: CGFloat
 	let stemCenterX: CGFloat
 	let balloonHeight: CGFloat
+	/// When set, the stemmed balloon's bottom is a plain edge with corners of this
+	/// radius, the stem dropping straight from it, instead of shoulders sweeping in.
+	var squareShoulderRadius: CGFloat? = nil
 	@Environment(\.keyboardStyle) var kbStyle
 
 	var body: some View {
@@ -56,7 +59,8 @@ struct KeyPreviewBubble: View {
 		switch kbStyle.keyPreview {
 		case .stemmed:
 			AnyShape(KeyPreviewShape(keyWidth: keyWidth, keyHeight: keyHeight,
-			                         stemCenterX: stemCenterX, cornerRadius: kbStyle.cornerRadius * 1.5))
+			                         stemCenterX: stemCenterX, cornerRadius: kbStyle.cornerRadius * 1.5,
+			                         squareShoulderRadius: squareShoulderRadius))
 		case .floating:
 			AnyShape(RoundedRectangle(cornerRadius: kbStyle.cornerRadius * 1.5))
 		}
@@ -70,8 +74,10 @@ struct KeyPreviewShape: Shape {
 	var keyHeight: CGFloat
 	var stemCenterX: CGFloat
 	var cornerRadius: CGFloat
+	var squareShoulderRadius: CGFloat? = nil
 
 	nonisolated func path(in rect: CGRect) -> Path {
+		if let squareShoulderRadius { return squarePath(in: rect, shoulderRadius: squareShoulderRadius) }
 		let radius = min(cornerRadius, keyWidth / 2)
 		let half = min(keyWidth, rect.width) / 2
 		let stemLeft = max(rect.minX, stemCenterX - half)
@@ -102,6 +108,51 @@ struct KeyPreviewShape: Shape {
 		path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + radius))
 		path.addQuadCurve(to: CGPoint(x: rect.minX + radius, y: rect.minY),
 		                  control: CGPoint(x: rect.minX, y: rect.minY))
+		path.closeSubpath()
+		return path
+	}
+}
+
+extension KeyPreviewShape {
+	/// The balloon as a rectangle, its bottom corners rounded by `shoulderRadius`,
+	/// with the stem dropping straight from its bottom edge. A stem closer to a
+	/// side than that radius takes the side with it: the balloon is trimmed to
+	/// the stem's outer edge there, so the side runs straight down the stem with
+	/// no ledge.
+	nonisolated func squarePath(in rect: CGRect, shoulderRadius: CGFloat) -> Path {
+		let radius = min(cornerRadius, keyWidth / 2)
+		let half = min(keyWidth, rect.width) / 2
+		let stemLeft = max(rect.minX, stemCenterX - half)
+		let stemRight = min(rect.maxX, stemCenterX + half)
+		let keyTop = rect.maxY - keyHeight
+		let shoulder = min(shoulderRadius, max(rect.height - keyHeight, 0) / 2)
+		let left = stemLeft - rect.minX < shoulder ? stemLeft : rect.minX
+		let right = rect.maxX - stemRight < shoulder ? stemRight : rect.maxX
+		let leftShoulder = left == stemLeft ? 0 : shoulder
+		let rightShoulder = right == stemRight ? 0 : shoulder
+
+		var path = Path()
+		path.move(to: CGPoint(x: left + radius, y: rect.minY))
+		path.addLine(to: CGPoint(x: right - radius, y: rect.minY))
+		path.addQuadCurve(to: CGPoint(x: right, y: rect.minY + radius),
+		                  control: CGPoint(x: right, y: rect.minY))
+		path.addLine(to: CGPoint(x: right, y: keyTop - rightShoulder))
+		path.addQuadCurve(to: CGPoint(x: right - rightShoulder, y: keyTop),
+		                  control: CGPoint(x: right, y: keyTop))
+		path.addLine(to: CGPoint(x: stemRight, y: keyTop))
+		path.addLine(to: CGPoint(x: stemRight, y: rect.maxY - radius))
+		path.addQuadCurve(to: CGPoint(x: stemRight - radius, y: rect.maxY),
+		                  control: CGPoint(x: stemRight, y: rect.maxY))
+		path.addLine(to: CGPoint(x: stemLeft + radius, y: rect.maxY))
+		path.addQuadCurve(to: CGPoint(x: stemLeft, y: rect.maxY - radius),
+		                  control: CGPoint(x: stemLeft, y: rect.maxY))
+		path.addLine(to: CGPoint(x: stemLeft, y: keyTop))
+		path.addLine(to: CGPoint(x: left + leftShoulder, y: keyTop))
+		path.addQuadCurve(to: CGPoint(x: left, y: keyTop - leftShoulder),
+		                  control: CGPoint(x: left, y: keyTop))
+		path.addLine(to: CGPoint(x: left, y: rect.minY + radius))
+		path.addQuadCurve(to: CGPoint(x: left + radius, y: rect.minY),
+		                  control: CGPoint(x: left, y: rect.minY))
 		path.closeSubpath()
 		return path
 	}

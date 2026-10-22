@@ -24,7 +24,8 @@ struct KeyAlternatesRowView: View {
 		let frame = CGRect(x: row.frame.minX, y: row.frame.minY, width: row.frame.width, height: row.frame.height + stem.height)
 		ZStack(alignment: .topLeading) {
 			KeyPreviewBubble(text: "", keyWidth: stemmed ? stem.width : row.frame.width, keyHeight: stem.height,
-			                 stemCenterX: row.slot.midX - frame.minX, balloonHeight: row.frame.height)
+			                 stemCenterX: row.slot.midX - frame.minX, balloonHeight: row.frame.height,
+			                 squareShoulderRadius: kbStyle.cornerRadius)
 			HStack(spacing: 0) {
 				ForEach(row.choices.indices, id: \.self) { index in
 					cell(row.choices[index], selected: index == row.selectedIndex)
