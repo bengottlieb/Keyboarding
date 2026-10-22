@@ -111,6 +111,13 @@ struct KeyboardMetrics {
 		return rect
 	}
 
+	func hitRect(for key: KeyDefinition) -> CGRect? {
+		for (y, row) in rows.enumerated() {
+			if let x = row.firstIndex(of: key) { return hitRect(forColumn: x, row: y) }
+		}
+		return nil
+	}
+
 	var bounds: CGRect {
 		CGRect(x: horizontalMargin, y: 0, width: rowWidth, height: CGFloat(rows.count) * keyCapHeight)
 	}

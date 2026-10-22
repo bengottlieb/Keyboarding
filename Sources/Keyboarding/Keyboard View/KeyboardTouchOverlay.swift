@@ -34,6 +34,11 @@ import SwiftUI
 	// enough to be seen. A press long enough to have rendered is not in here — it
 	// goes the moment the finger does (see `end`).
 	private(set) var lingering: [String: KeyDefinition] = [:]
+	// Held letter keys' rows of alternates, keyed like `targets` (see
+	// KeyboardTouchModel+Alternates). Set only through that extension.
+	var alternateRows: [String: KeyAlternatesRow] = [:]
+	/// What a change of choice along a row plays; a test swaps in a counter.
+	@ObservationIgnored var alternateHaptic: @MainActor () -> Void = { KeyboardTouchModel.playHaptic() }
 
 	private var lingerTasks: [String: Task<Void, Never>] = [:]
 	/// Matches the original keyboard's minimum pop time.
@@ -164,7 +169,7 @@ import SwiftUI
 	/// view update. Routing it through `.sensoryFeedback` meant the thump waited
 	/// on a SwiftUI render, and a late haptic reads worse than none at all: it is
 	/// the strongest "the key registered" cue there is.
-	private static func playHaptic() {
+	static func playHaptic() {
 		#if os(iOS)
 			haptics.selectionChanged()
 			haptics.prepare()
@@ -207,6 +212,7 @@ import SwiftUI
 		targets.removeValue(forKey: origin.id)
 		lingering.removeValue(forKey: origin.id)
 		glides.removeValue(forKey: origin.id)
+		alternateRows.removeValue(forKey: origin.id)
 		downTimes.removeValue(forKey: origin.id)
 		retargets.removeValue(forKey: origin.id)
 	}
@@ -221,6 +227,7 @@ import SwiftUI
 		targets.removeAll()
 		lingering.removeAll()
 		glides.removeAll()
+		alternateRows.removeAll()
 		downTimes.removeAll()
 		retargets.removeAll()
 		lastCommit = nil
@@ -229,6 +236,7 @@ import SwiftUI
 	func end(origin: KeyDefinition, now: Date = .now) {
 		activeOrigins.removeValue(forKey: origin.id)
 		cancelLongPress(origin: origin)
+		alternateRows.removeValue(forKey: origin.id)
 		guard let key = targets.removeValue(forKey: origin.id) else { return }
 		// A touch this long has certainly had a frame to draw the preview, so
 		// releasing hides it at once — the way the original keyboard did. Lingering
@@ -271,6 +279,9 @@ struct KeyboardTouchOverlay: View {
 						pressTint(over: rect)
 					}
 				}
+			}
+			ForEach(touches.alternateRows.keys.sorted(), id: \.self) { originID in
+				if let row = touches.alternateRows[originID] { KeyAlternatesRowView(row: row) }
 			}
 			ForEach(touches.glides.keys.sorted(), id: \.self) { originID in
 				if let capture = touches.glides[originID], capture.isGliding {
