@@ -34,6 +34,8 @@ public struct KeyboardView: View {
 	@Environment(\.keyboardGlide) var glideHandler
 	// Read but never called during `body` — see KeyLongPressHandler.
 	@Environment(\.keyLongPress) var keyLongPress
+	// Asked at hold time, and for each key's VoiceOver actions — see KeyAlternatesProvider.
+	@Environment(\.keyAlternates) var keyAlternates
 	@Environment(\.keyboardSplit) private var splitBehavior
 
 	// Live-touch state. Deliberately NOT read in this body — only the touch
@@ -103,6 +105,11 @@ public struct KeyboardView: View {
 							.allowsHitTesting(def.type != .blank)
 							.accessibilityAddTraits(.isButton)
 							.accessibilityAction { commit(def) }
+							.accessibilityActions {
+								ForEach(KeyHoldOutcome.accessibilityChoices(for: def, alternates: keyAlternates), id: \.self) { choice in
+									Button(choice) { commit(KeyDefinition(stringLiteral: choice)) }
+								}
+							}
 							.accessibilityHidden(def.type == .blank)
 							.offset(x: hit.minX, y: rect.minY)
 					}
@@ -111,6 +118,11 @@ public struct KeyboardView: View {
 				#if DEBUG
 					AssistRegionOverlay(metrics: metrics).zIndex(150)
 				#endif
+
+				// Beneath the touch overlay, so a held key's row stays bright above it.
+				KeyAlternatesDimming(touches: touches)
+					.padding(.top, -12)
+					.zIndex(190)
 
 				KeyboardTouchOverlay(touches: touches, metrics: metrics)
 					.zIndex(200)
@@ -186,16 +198,38 @@ public struct KeyboardView: View {
 	//
 	// Resting on the key the finger landed on runs the host's long-press block
 	// (if it claims that key), which spends the touch: no key commits on release.
+	// A letter key the host doesn't claim opens its row of alternates instead, if
+	// the host offers any; from then on the finger moves along the row and its
+	// lift types the choice under it (or nothing, off the row). A hold needs a
+	// finger that never left its key, so a glide never opens a row, and an open
+	// row records no glide.
 	private func keyTouch(from origin: KeyDefinition, metrics: KeyboardMetrics) -> KeyboardKeyTouchLifecycle {
 		// Glide reads words, so not on a page of digits and symbols.
 		let glideEligible = glideHandler != nil && origin.type == .letter && !showsAlternate
+		let holdEligible = keyLongPress != nil || keyAlternates != nil
 		return KeyboardKeyTouchLifecycle(space: Self.space, onChanged: { location, touchID in
+				if touches.isActive(origin: origin, touchID: touchID), touches.hasAlternates(origin: origin) {
+					touches.moveAlternates(origin: origin, to: location, haptic: kbStyle.enableHaptics)
+					return
+				}
 				let target = metrics.key(at: location)
 				touches.update(origin: origin, target: target, click: kbStyle.enableKeySounds, haptic: kbStyle.enableHaptics, touchID: touchID)
-				if let keyLongPress, target == origin { touches.armLongPress(origin: origin) { keyLongPress($0) } }
+				if holdEligible, target == origin { touches.armLongPress(origin: origin) { hold($0, metrics: metrics) } }
 				if glideEligible { touches.glideSample(origin: origin, point: location, over: target) }
 			}, onEnded: { location, touchID in
 				guard touches.isActive(origin: origin, touchID: touchID) else { return }
+				if touches.hasAlternates(origin: origin) {
+					let choice = touches.finishAlternates(origin: origin, at: location)
+					_ = touches.consumedLongPress(origin: origin)
+					_ = touches.endGlide(origin: origin)
+					touches.end(origin: origin)
+					guard let choice else { return }
+					// Typed exactly as a tap on that key would be, without assist: a
+					// choice picked off the row is as deliberate as a press gets.
+					commit(KeyDefinition(stringLiteral: choice))
+					touches.recordCommit(origin: origin)
+					return
+				}
 				// A hold that ran the host's block already spent this touch.
 				if touches.consumedLongPress(origin: origin) {
 					_ = touches.endGlide(origin: origin)
@@ -216,6 +250,22 @@ public struct KeyboardView: View {
 				}
 			}, onReset: { touches.cancelIfActive(origin: origin, touchID: $0) },
 			   onDisappear: { touches.cancel(origin: origin) })
+	}
+
+	/// What a finger resting on its key does once the hold lands: the host's block
+	/// if it claims the key, else the key's row of alternates. True spends the touch.
+	private func hold(_ key: KeyDefinition, metrics: KeyboardMetrics) -> Bool {
+		switch KeyHoldOutcome.resolve(key, longPress: keyLongPress, alternates: keyAlternates) {
+		case .claimed: return true
+		case .none: return false
+		case .alternates(let choices):
+			guard let slot = metrics.rect(for: key), let hit = metrics.hitRect(for: key) else { return false }
+			// Sized and placed like the key preview's balloon (see KeyboardTouchOverlay).
+			let gap: CGFloat = kbStyle.keyPreview == .floating ? 4 : 0
+			touches.openAlternates(KeyAlternatesRow(key: key, choices: choices, slot: slot, hit: hit, bounds: metrics.bounds,
+			                                        height: metrics.keyCapHeight * 1.15, gap: gap), origin: key)
+			return true
+		}
 	}
 
 	/// Typing assist, the whole of it: a letter key released during a fast burst,
