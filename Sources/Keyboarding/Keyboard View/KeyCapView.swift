@@ -50,11 +50,10 @@ struct KeyCapView: View {
 		.opacity(isUnavailable ? kbStyle.unavailableKeyOpacity : 1)
 		// One control per key, whatever the label is made of.
 		.accessibilityElement(children: .ignore)
-		.accessibilityLabel(accessibilityLabel)
+		// Spoken as the system keyboard speaks its keys (see KeyAccessibility).
+		.accessibilityLabel(definition.accessibilityLabel)
 		.accessibilityValue(accessibilityValue?(definition) ?? "")
-		// A hint, not `.isNotEnabled`: the key still types, and the trait would
-		// tell VoiceOver otherwise.
-		.accessibilityHint(isUnavailable ? Text("Unavailable") : Text(""))
+		.accessibilityHint(definition.accessibilityHint(isUnavailable: isUnavailable))
 	}
 
 	private var isUnavailable: Bool {
@@ -63,24 +62,6 @@ struct KeyCapView: View {
 	}
 
 	private var ink: Color { definition.string == nil ? kbStyle.specialInk : kbStyle.keyInk }
-
-	private var accessibilityLabel: String {
-		if let string = definition.string { return string }
-		switch definition.type {
-		case .delete: return "Delete"
-		case .dismiss: return "Dismiss keyboard"
-		case .tab: return "Tab"
-		case .enter: return "Return"
-		case .space: return "Space"
-		case .navigation: return "Navigation"
-		case .pencil: return "Pencil"
-		case .skip: return "Skip"
-		case .custom: return "Custom key"
-		case .command(let id, let title, _): return title ?? id.capitalized
-		case .pageToggle(_, let spokenLabel): return spokenLabel
-		case .letter, .blank: return ""
-		}
-	}
 
 	/// Function keys labelled with a word rather than a glyph.
 	private var textLabel: String? {

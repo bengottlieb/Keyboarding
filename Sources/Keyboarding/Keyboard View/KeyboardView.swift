@@ -103,13 +103,18 @@ public struct KeyboardView: View {
 							.contentShape(.rect)
 							.modifier(keyTouch(from: def, metrics: metrics))
 							.allowsHitTesting(def.type != .blank)
-							.accessibilityAddTraits(.isButton)
 							.accessibilityAction { commit(def) }
 							.accessibilityActions {
 								ForEach(KeyHoldOutcome.accessibilityChoices(for: def, alternates: keyAlternates), id: \.self) { choice in
 									Button(choice) { commit(KeyDefinition(stringLiteral: choice)) }
 								}
 							}
+							// Letters and Delete are keyboard keys, so VoiceOver's touch typing
+							// types them on lift; activation is the action above, never a touch.
+							// SwiftUI reads an element with an action as a button too; a keyboard
+							// key that is also a button is not one VoiceOver types on lift.
+							.accessibilityAddTraits(def.accessibilityTraits)
+							.accessibilityRemoveTraits(def.isTypedKey ? .isButton : [])
 							.accessibilityHidden(def.type == .blank)
 							.offset(x: hit.minX, y: rect.minY)
 					}
@@ -150,6 +155,11 @@ public struct KeyboardView: View {
 		.onKeyPress { key in
 			sendKey(.init(keyPress: key))
 		}
+		// A container, never an element of its own. Left implicit, VoiceOver's hit
+		// test answered every touch on the keys with an unlabelled element the size
+		// of the keyboard (the alternates scrim, hidden or not), so touching a key
+		// spoke nothing and only swiping reached the keys.
+		.accessibilityElement(children: .contain)
 	}
 
 	/// The split to lay out around, if the display or the host asks for one.
