@@ -59,9 +59,13 @@ enum KeyHoldOutcome: Equatable {
 	}
 
 	/// The VoiceOver actions a key offers: its alternates less its own letter,
-	/// which the key's default action already types.
+	/// which the key's default action already types, and less blanks and repeats,
+	/// which would be actions with no name or the same action twice.
 	@MainActor static func accessibilityChoices(for key: KeyDefinition, alternates: KeyAlternatesProvider?) -> [String] {
 		guard key.type == .letter, let alternates else { return [] }
-		return alternates(key).filter { $0 != key.string }
+		var seen: Set<String> = []
+		return alternates(key).filter { choice in
+			!choice.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && choice != key.string && seen.insert(choice).inserted
+		}
 	}
 }

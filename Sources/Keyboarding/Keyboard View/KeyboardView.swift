@@ -104,11 +104,9 @@ public struct KeyboardView: View {
 							.modifier(keyTouch(from: def, metrics: metrics))
 							.allowsHitTesting(def.type != .blank)
 							.accessibilityAction { commit(def) }
-							.accessibilityActions {
-								ForEach(KeyHoldOutcome.accessibilityChoices(for: def, alternates: keyAlternates), id: \.self) { choice in
-									Button(choice) { commit(KeyDefinition(stringLiteral: choice)) }
-								}
-							}
+							.modifier(KeyAccessibilityActions(choices: KeyHoldOutcome.accessibilityChoices(for: def, alternates: keyAlternates)) { choice in
+								commit(KeyDefinition(stringLiteral: choice))
+							})
 							// Letters and Delete are keyboard keys, so VoiceOver's touch typing
 							// types them on lift; activation is the action above, never a touch.
 							// SwiftUI reads an element with an action as a button too; a keyboard
