@@ -36,6 +36,7 @@ public struct KeyboardView: View {
 	@Environment(\.keyLongPress) var keyLongPress
 	// Asked at hold time, and for each key's VoiceOver actions — see KeyAlternatesProvider.
 	@Environment(\.keyAlternates) var keyAlternates
+	@Environment(\.keyboardTwoFingerHold) private var twoFingerHold
 	@Environment(\.keyboardSplit) private var splitBehavior
 
 	// Live-touch state. Deliberately NOT read in this body — only the touch
@@ -131,6 +132,7 @@ public struct KeyboardView: View {
 					.zIndex(200)
 			}
 			.coordinateSpace(name: Self.space)
+			.modifier(KeyboardTwoFingerHoldModifier(hold: twoFingerHold, touches: touches))
 			.padding(.top, 12)
 		}
 		// The keys keep to the safe area, inset evenly on both sides, the way
@@ -225,7 +227,11 @@ public struct KeyboardView: View {
 				if holdEligible, target == origin { touches.armLongPress(origin: origin) { hold($0, metrics: metrics) } }
 				if glideEligible { touches.glideSample(origin: origin, point: location, over: target) }
 			}, onEnded: { location, touchID in
-				guard touches.isActive(origin: origin, touchID: touchID) else { return }
+				guard touches.isActive(origin: origin, touchID: touchID) else {
+					// A press the two-finger hold took (or one already cancelled) types nothing.
+					touches.forget(touchID: touchID)
+					return
+				}
 				if touches.hasAlternates(origin: origin) {
 					let choice = touches.finishAlternates(origin: origin, at: location)
 					_ = touches.consumedLongPress(origin: origin)

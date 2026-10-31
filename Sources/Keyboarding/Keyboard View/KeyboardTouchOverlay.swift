@@ -69,10 +69,19 @@ import SwiftUI
 	@ObservationIgnored private var longPressTasks: [String: Task<Void, Never>] = [:]
 	@ObservationIgnored private var longPressed: Set<String> = []
 
+	// The host's two-finger hold (KeyboardTouchModel+TwoFingers): while two
+	// fingers are down no hold starts, a finger that was down then never holds,
+	// and the touches a hold spent stay spent until they lift.
+	@ObservationIgnored var holdsSuspended = false
+	@ObservationIgnored var holdForfeited: Set<String> = []
+	@ObservationIgnored var spentTouches: Set<UUID> = []
+
 	// Live touches win over lingering ones for the same origin key.
 	var visible: [String: KeyDefinition] { lingering.merging(targets) { _, live in live } }
 
 	func update(origin: KeyDefinition, target: KeyDefinition?, click: Bool, haptic: Bool, now: Date = .now, touchID: UUID? = nil) {
+		// A finger the two-finger hold took: nothing it does until it lifts counts.
+		if let touchID, spentTouches.contains(touchID) { return }
 		if activeOrigins[origin.id] == nil || (touchID != nil && activeOrigins[origin.id] != touchID) {
 			cancel(origin: origin)
 			activeOrigins[origin.id] = touchID ?? UUID()
@@ -123,7 +132,8 @@ import SwiftUI
 	func armLongPress(origin: KeyDefinition, action: @escaping @MainActor (KeyDefinition) -> Bool) {
 		// A finger that has already slid somewhere is aiming, and sliding back does
 		// not re-arm: the hold belongs to a finger that never left its key.
-		guard longPressTasks[origin.id] == nil, retargets[origin.id, default: 0] == 0 else { return }
+		guard longPressTasks[origin.id] == nil, retargets[origin.id, default: 0] == 0,
+		      !holdsSuspended, !holdForfeited.contains(origin.id) else { return }
 		longPressTasks[origin.id] = Task { @MainActor [weak self] in
 			try? await Task.sleep(for: Self.longPressDuration)
 			guard !Task.isCancelled, let self, targets[origin.id] == origin, action(origin) else { return }
@@ -135,8 +145,10 @@ import SwiftUI
 	}
 
 	/// Stop this finger's long-press clock — it moved on, or lifted.
-	func cancelLongPress(origin: KeyDefinition) {
-		longPressTasks.removeValue(forKey: origin.id)?.cancel()
+	func cancelLongPress(origin: KeyDefinition) { cancelLongPress(originID: origin.id) }
+
+	func cancelLongPress(originID: String) {
+		longPressTasks.removeValue(forKey: originID)?.cancel()
 	}
 
 	/// Whether this touch was already spent on a long press, clearing the flag.
@@ -200,22 +212,29 @@ import SwiftUI
 	/// GestureState resets on cancellation as well as release. A normal release
 	/// already ended its touch and may retain a deliberately brief preview.
 	func cancelIfActive(origin: KeyDefinition, touchID: UUID) {
+		spentTouches.remove(touchID)
 		guard activeOrigins[origin.id] == touchID else { return }
 		cancel(origin: origin)
 	}
 
-	func cancel(origin: KeyDefinition) {
-		activeOrigins.removeValue(forKey: origin.id)
-		cancelLongPress(origin: origin)
-		longPressed.remove(origin.id)
-		lingerTasks.removeValue(forKey: origin.id)?.cancel()
-		targets.removeValue(forKey: origin.id)
-		lingering.removeValue(forKey: origin.id)
-		glides.removeValue(forKey: origin.id)
-		alternateRows.removeValue(forKey: origin.id)
-		downTimes.removeValue(forKey: origin.id)
-		retargets.removeValue(forKey: origin.id)
+	func cancel(origin: KeyDefinition) { cancel(originID: origin.id) }
+
+	func cancel(originID: String) {
+		activeOrigins.removeValue(forKey: originID)
+		cancelLongPress(originID: originID)
+		longPressed.remove(originID)
+		holdForfeited.remove(originID)
+		lingerTasks.removeValue(forKey: originID)?.cancel()
+		targets.removeValue(forKey: originID)
+		lingering.removeValue(forKey: originID)
+		glides.removeValue(forKey: originID)
+		alternateRows.removeValue(forKey: originID)
+		downTimes.removeValue(forKey: originID)
+		retargets.removeValue(forKey: originID)
 	}
+
+	/// The fingers down now, by the key each landed on, and the touch each is.
+	var activeTouches: [String: UUID] { activeOrigins }
 
 	func cancelAll() {
 		longPressTasks.values.forEach { $0.cancel() }
@@ -224,6 +243,9 @@ import SwiftUI
 		lingerTasks.removeAll()
 		activeOrigins.removeAll()
 		longPressed.removeAll()
+		holdForfeited.removeAll()
+		spentTouches.removeAll()
+		holdsSuspended = false
 		targets.removeAll()
 		lingering.removeAll()
 		glides.removeAll()
@@ -236,6 +258,7 @@ import SwiftUI
 	func end(origin: KeyDefinition, now: Date = .now) {
 		activeOrigins.removeValue(forKey: origin.id)
 		cancelLongPress(origin: origin)
+		holdForfeited.remove(origin.id)
 		alternateRows.removeValue(forKey: origin.id)
 		guard let key = targets.removeValue(forKey: origin.id) else { return }
 		// A touch this long has certainly had a frame to draw the preview, so
