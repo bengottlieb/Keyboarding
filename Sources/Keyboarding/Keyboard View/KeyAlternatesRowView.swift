@@ -41,6 +41,10 @@ struct KeyAlternatesRowView: View {
 		Text(choice)
 			.font(kbStyle.keyFont.font(base: min(row.cellWidth, row.frame.height) * 0.55,
 			                           fitting: CGSize(width: row.cellWidth, height: row.frame.height)))
+			// Never wider than its cell, whatever the face (see KeyCapView).
+			.lineLimit(1)
+			.minimumScaleFactor(0.5)
+			.padding(.horizontal, 2)
 			.foregroundStyle(selected ? Color.white : kbStyle.keyInk)
 			.frame(width: row.cellWidth, height: row.frame.height)
 			.background {

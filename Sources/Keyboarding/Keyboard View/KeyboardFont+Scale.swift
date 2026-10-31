@@ -8,6 +8,9 @@
 //  the cap's face, the preview's balloon, an alternate's cell. A landscape
 //  phone's balloon is shorter than its key is wide, so there the preview may
 //  not grow at all. A scale below 1 always applies, and at 1 nothing changes.
+//  The rule cannot see the face, so each of those texts also shrinks itself
+//  (`minimumScaleFactor`) when a wide glyph — a bold serif W — still would not
+//  fit across its box.
 //
 
 import SwiftUI

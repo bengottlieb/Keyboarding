@@ -76,6 +76,11 @@ struct KeyCapView: View {
 	@ViewBuilder private var label: some View {
 		if let text = definition.string {
 			Text(text)
+				// A face wider than the keyboard's own (a serif W, scaled up on a
+				// small phone) shrinks to the face rather than running past it.
+				.lineLimit(1)
+				.minimumScaleFactor(0.5)
+				.padding(.horizontal, faceInset + 3)
 		} else if let title = textLabel {
 			Text(title)
 				.font(.system(size: 17, weight: .regular))
