@@ -40,6 +40,12 @@ struct KeyboardMetrics {
 	// How far outside the keys a touch keeps tracking before it cancels.
 	var slop: CGFloat { keyCapHeight }
 
+	/// A cap glyph's unscaled size: half the key's smaller side, so a key far
+	/// wider than tall (iPad) never sizes a glyph into the rows around it.
+	var glyphSize: CGFloat { min(keyCapWidth, keyCapHeight) * 0.5 }
+	/// A letter key's face, inside the gap around it: what its glyph must fit.
+	var faceSize: CGSize { CGSize(width: max(0, keyCapWidth - faceInset * 2), height: max(0, keyCapHeight - faceInset * 2)) }
+
 	init(keymap: Keymap, width: CGFloat, keyCapHeight: CGFloat, horizontalMargin: CGFloat, split: KeyboardSplit? = nil) {
 		self.keymap = keymap
 		self.horizontalMargin = horizontalMargin

@@ -8,22 +8,30 @@
 
 import SwiftUI
 
-/// The typeface for keycap glyphs. Pass an empty `family` for the system font
-/// of the given design; the size is chosen by the keyboard relative to key width.
+/// The typeface for keycap glyphs. Pass an empty `family` (or a PostScript
+/// name) for the system font of the given design; the size is chosen by the
+/// keyboard relative to key width, and `scale` sizes typed characters — the
+/// letter on a cap, its preview and its alternates — over that, never past
+/// what their box holds (KeyboardFont+Scale). Function keys' glyphs ignore it.
 public struct KeyboardFont: Sendable, Equatable {
 	public var family: String
 	public var design: Font.Design
 	public var weight: Font.Weight
+	public var scale: CGFloat
 
-	public init(family: String = "", design: Font.Design = .rounded, weight: Font.Weight = .bold) {
+	public init(family: String = "", design: Font.Design = .rounded, weight: Font.Weight = .bold, scale: CGFloat = 1) {
 		self.family = family
 		self.design = design
 		self.weight = weight
+		self.scale = scale
 	}
 
+	/// The face at exactly `size`, unscaled. A named family is fixed-size like
+	/// the system face: the keys are sized from the keyboard's geometry, so
+	/// Dynamic Type must not grow the glyph past its key.
 	public func font(size: CGFloat) -> Font {
 		family.isEmpty ? .system(size: size, weight: weight, design: design)
-					   : .custom(family, size: size).weight(weight)
+					   : .custom(family, fixedSize: size).weight(weight)
 	}
 }
 

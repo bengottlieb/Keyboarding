@@ -95,9 +95,9 @@ public struct KeyboardView: View {
 						let hit = metrics.hitRect(forColumn: x, row: y)
 						KeyCapView(definition: def, faceInset: metrics.faceInset)
 							.frame(width: rect.width, height: rect.height)
-							// Keys can be far wider than tall (iPad): size the glyphs from the
-							// smaller dimension so they never overflow into neighboring rows.
-							.font(kbStyle.keyFont.font(size: min(metrics.keyCapWidth, metrics.keyCapHeight) * 0.5))
+							// Only a typed character takes the font's scale, held to the face.
+							.font(def.string == nil ? kbStyle.keyFont.font(size: metrics.glyphSize)
+							                        : kbStyle.keyFont.font(base: metrics.glyphSize, fitting: metrics.faceSize))
 							.padding(.leading, rect.minX - hit.minX)
 							.padding(.trailing, hit.maxX - rect.maxX)
 							.contentShape(.rect)

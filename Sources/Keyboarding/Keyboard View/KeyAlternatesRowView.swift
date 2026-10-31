@@ -39,7 +39,8 @@ struct KeyAlternatesRowView: View {
 
 	private func cell(_ choice: String, selected: Bool) -> some View {
 		Text(choice)
-			.font(kbStyle.keyFont.font(size: min(row.cellWidth, row.frame.height) * 0.55))
+			.font(kbStyle.keyFont.font(base: min(row.cellWidth, row.frame.height) * 0.55,
+			                           fitting: CGSize(width: row.cellWidth, height: row.frame.height)))
 			.foregroundStyle(selected ? Color.white : kbStyle.keyInk)
 			.frame(width: row.cellWidth, height: row.frame.height)
 			.background {

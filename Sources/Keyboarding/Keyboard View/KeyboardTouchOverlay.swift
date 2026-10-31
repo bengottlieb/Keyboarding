@@ -330,7 +330,7 @@ struct KeyboardTouchOverlay: View {
 		// placed from the key's real position rather than assumed centered.
 		return KeyPreviewBubble(text: text, keyWidth: stem.width, keyHeight: stem.height,
 		                        stemCenterX: rect.midX - frame.minX, balloonHeight: balloonHeight)
-			.font(kbStyle.keyFont.font(size: metrics.keyCapWidth * 0.66))
+			.font(previewFont(fitting: CGSize(width: width, height: balloonHeight)))
 			.frame(width: frame.width, height: frame.height)
 			.position(x: frame.midX, y: frame.midY)
 	}
@@ -344,9 +344,14 @@ struct KeyboardTouchOverlay: View {
 		// letter centers in the whole popup.
 		return KeyPreviewBubble(text: text, keyWidth: rect.width, keyHeight: 0,
 		                        stemCenterX: rect.midX - minX, balloonHeight: height)
-			.font(kbStyle.keyFont.font(size: metrics.keyCapWidth * 0.66))
+			.font(previewFont(fitting: CGSize(width: width, height: height)))
 			.frame(width: width, height: height)
 			.position(x: minX + width / 2, y: rect.minY - height / 2 - 4)
+	}
+
+	/// The previewed letter, scaled as the cap's is and held to the balloon.
+	private func previewFont(fitting balloon: CGSize) -> Font {
+		kbStyle.keyFont.font(base: metrics.keyCapWidth * 0.66, fitting: balloon)
 	}
 
 	/// Keeps a popup inside the keyboard's bounds; the key it points at may sit
