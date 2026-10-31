@@ -56,3 +56,19 @@ struct KeyboardFontScaleTests {
 		#expect(font.size(base: metrics.keyCapWidth * 0.66, fitting: balloon) <= KeyboardFont.largestFitting(balloon))
 	}
 }
+
+@MainActor
+@Suite("A key's letter at its default size")
+struct KeyGlyphSizeTests {
+	@Test("about 21–22pt on a 402pt phone in portrait, and it fits the face everywhere")
+	func defaultSize() {
+		let phone = KeyboardMetrics(keymap: .qwerty, width: 402, keyCapHeight: 54, horizontalMargin: 8)
+		#expect((21...22).contains(phone.glyphSize))
+		for metrics in [phone,
+		                KeyboardMetrics(keymap: .qwerty, width: 375, keyCapHeight: 54, horizontalMargin: 8),
+		                KeyboardMetrics(keymap: .qwerty, width: 750, keyCapHeight: 44, horizontalMargin: 8),
+		                KeyboardMetrics(keymap: .qwerty, width: 1024, keyCapHeight: 54, horizontalMargin: 8)] {
+			#expect(metrics.glyphSize <= KeyboardFont.largestFitting(metrics.faceSize))
+		}
+	}
+}

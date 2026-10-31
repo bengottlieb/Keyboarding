@@ -40,9 +40,12 @@ struct KeyboardMetrics {
 	// How far outside the keys a touch keeps tracking before it cancels.
 	var slop: CGFloat { keyCapHeight }
 
-	/// A cap glyph's unscaled size: half the key's smaller side, so a key far
-	/// wider than tall (iPad) never sizes a glyph into the rows around it.
-	var glyphSize: CGFloat { min(keyCapWidth, keyCapHeight) * 0.5 }
+	/// A cap glyph's unscaled size: a little over half the key's smaller side
+	/// (about 21.5pt on a 402pt-wide phone, near the original Crosswords
+	/// keyboard's fixed 23pt), so a key far wider than tall (iPad) never sizes
+	/// a glyph into the rows around it.
+	var glyphSize: CGFloat { min(keyCapWidth, keyCapHeight) * Self.glyphShare }
+	static let glyphShare: CGFloat = 0.56
 	/// A letter key's face, inside the gap around it: what its glyph must fit.
 	var faceSize: CGSize { CGSize(width: max(0, keyCapWidth - faceInset * 2), height: max(0, keyCapHeight - faceInset * 2)) }
 
